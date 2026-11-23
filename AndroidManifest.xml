@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="app.m3home">
+
+    <!-- Only to read whether a Tailscale (VPN) network is up. No internet permission. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Granted over adb by install.sh only. Lets M3 Home set itself as the screensaver and
+         re-enable its own Home-button service after an update. Nothing else uses it. -->
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" />
+    <!-- Weather (Open-Meteo, only the chosen town's coordinates are sent) and the companion
+         site your phone opens from the QR code (runs only while that screen is open). -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Installing updates from GitHub Releases; Android still asks you to confirm each one. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <uses-feature android:name="android.software.leanback" android:required="false" />
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+
+    <application
+        android:label="@string/app_name"
+        android:icon="@drawable/icon"
+        android:banner="@drawable/banner"
+        android:theme="@style/M3Home"
+        android:allowBackup="false"
+        android:supportsRtl="true">
+
+        <activity
+            android:name=".Home"
+            android:launchMode="singleTask"
+            android:stateNotNeeded="true"
+            android:screenOrientation="landscape"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|uiMode">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".SettingsActivity"
+            android:theme="@style/M3Panel"
+            android:launchMode="singleTask"
+            android:taskAffinity="app.m3home.settings"
+            android:excludeFromRecents="true"
+            android:exported="false" />
+
+        <activity
+            android:name=".ScreensaverActivity"
+            android:theme="@style/M3Home"
+            android:excludeFromRecents="true"
+            android:screenOrientation="landscape"
+            android:exported="false" />
+
+        <activity
+            android:name=".DeadlinesActivity"
+            android:theme="@style/M3Home"
+            android:excludeFromRecents="true"
+            android:screenOrientation="landscape"
+            android:exported="false" />
+
+        <activity
+            android:name=".WindDownActivity"
+            android:theme="@style/M3Home"
+            android:launchMode="singleTask"
+            android:excludeFromRecents="true"
+            android:screenOrientation="landscape"
+            android:exported="false" />
+
+        <receiver android:name=".Updater$Result" android:exported="false" />
+        <receiver android:name=".Updater$Replaced" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Only lets M3 Home read "now playing"; it ignores notifications. Granted by install.sh. -->
+        <service
+            android:name=".MediaListener"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".Screensaver"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_DREAM_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.dreams.DreamService" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </service>
+
+        <!-- Fire OS will not let a third-party app be the Home app, so this service watches
+             for Amazon's home screen and quick menu (and nothing else) and opens M3 Home's
+             instead. It also draws the brightness / blue-light filter. -->
+        <service
+            android:name=".HomeGuard"
+            android:label="@string/guard_name"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/home_guard" />
+        </service>
+    </application>
+</manifest>
