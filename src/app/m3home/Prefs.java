@@ -68,7 +68,7 @@ final class Prefs {
     static final String HOME_ROWS = "home_rows";       // CSV in display order; a missing id = hidden. ids: favourites,recents,apps,store
     static final String TILE_SIZE = "tile_size";       // compact | normal | large
     // Theme
-    static final String ACCENT = "accent";             // purple|blue|teal|green|yellow|orange|red|pink|background
+    static final String ACCENT = "accent";             // purple|blue|teal|green|yellow|orange|red|pink|background|custom
     static final String THEME_MODE = "theme_mode";     // dark | light
     static final String TEXT_SIZE = "text_size";       // small | normal | large
     // Home background
@@ -84,7 +84,16 @@ final class Prefs {
     static final String STORE_CUSTOM = "store_custom"; // JSON array of your own apps: {id, name, repo | url}
     private static final String STORE_ROW_ADDED = "store_row_added"; // the "Get apps" row was added once
 
-    /** The shown rows. Ids: favourites,recents,apps,store. 1.10.0 adds "store" once to a saved list. */
+    // Plugins (see Plugins.java and docs/plugins.md)
+    static final String PLUGINS = "plugins";                   // JSON array of your web plugins: {id, url}
+    static final String PLUGIN_ON = "plugin_on:";              // + plugin id -> on/off (web: on when added; Android: off until switched on)
+    static final String PLUGIN_ROWS_SEEN = "plugin_rows_seen"; // CSV of plugin row ids already added to Home once
+    static final String ACCENT_SEED = "accent_seed";           // int colour for ACCENT "custom" (set by a theme plugin)
+
+    /**
+     * The shown rows. Ids: favourites,recents,apps,store, and plugin rows "plugin:<plugin>/<row>".
+     * 1.10.0 adds "store" once to a saved list.
+     */
     static String homeRows(Context c) {
         SharedPreferences p = of(c);
         if (!p.getBoolean(STORE_ROW_ADDED, false)) {

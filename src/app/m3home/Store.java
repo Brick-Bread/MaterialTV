@@ -81,6 +81,9 @@ final class Store {
 
         boolean appstore() { return "appstore".equals(type); }
 
+        /** A MaterialTV plugin ("type": "plugin"); url is its https manifest. See parsePluginEntry. */
+        boolean plugin() { return "plugin".equals(type); }
+
         /** "github.com/owner/name", "videolan.org", "Amazon Appstore". */
         String source() {
             if (appstore()) return "Amazon Appstore";
@@ -170,6 +173,8 @@ final class Store {
             List<String> ids = new ArrayList<>();
             for (int i = 0; i < a.length() && out.size() < 100; i++) {
                 JSONObject o = a.optJSONObject(i);
+                Entry plugin = parsePluginEntry(o, ids); // plugin entries: see the plugins section below
+                if (plugin != null) { ids.add(plugin.id); out.add(plugin); continue; }
                 JSONObject src = o == null ? null : o.optJSONObject("source");
                 if (src == null) continue;
                 String id = o.optString("id"), name = o.optString("name").trim();
@@ -312,6 +317,11 @@ final class Store {
         JSONObject rel = releases(c);
         List<Item> out = new ArrayList<>();
         for (Entry e : all(c)) {
+            if (e.plugin()) { // plugin entries: see the plugins section below
+                Item p = pluginItem(c, e);
+                if (p != null) out.add(p);
+                continue;
+            }
             String installed = null;
             if (e.pkg != null) {
                 try {
@@ -339,6 +349,33 @@ final class Store {
         }
         return out;
     }
+
+    // ---- plugins (entries with "type": "plugin"; everything else lives in Plugins.java) ----------
+
+    /**
+     * A catalog entry {"id", "name", "type": "plugin", "manifest": "https://…", "description",
+     * "category", "icon_url"}, or null when o isn't a plugin entry or isn't a valid one.
+     */
+    private static Entry parsePluginEntry(JSONObject o, List<String> ids) {
+        if (o == null || !"plugin".equals(o.optString("type"))) return null;
+        String id = o.optString("id"), name = o.optString("name").trim(), manifest = o.optString("manifest");
+        if (!ID.matcher(id).matches() || ids.contains(id) || name.isEmpty() || name.length() > MAX_NAME) return null;
+        if (!httpsOk(manifest)) return null;
+        String icon = o.optString("icon_url", "");
+        return new Entry(id, name, null, clip(o.optString("description"), 160), clip(o.optString("category", "Plugins"), 30),
+                httpsOk(icon) ? icon : null, "plugin", null, null, manifest, null, false);
+    }
+
+    /** A plugin in the row while it isn't installed yet (installed ones are in Settings > Plugins). */
+    private static Item pluginItem(Context c, Entry e) {
+        for (Plugins.Plugin p : Plugins.all(c)) if (e.url.equals(p.url)) return null;
+        Bitmap icon = icon(c, e.id);
+        int tint = icon != null ? M3.containerFor(new BitmapDrawable(c.getResources(), icon)) : 0;
+        if (icon == null || tint == M3.SURFACE_HIGH) tint = Plugins.tint(e.id);
+        return new Item(e, GET, null, null, -1, icon, tint);
+    }
+
+    // ---- end of plugins ----------------------------------------------------------------------
 
     /** True when version a is newer than b, comparing the leading numbers ("v1.2.3", "32.80s", "2026-09-17"). */
     static boolean newer(String a, String b) {

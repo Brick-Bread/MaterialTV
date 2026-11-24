@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A minimal MaterialTV Android plugin. Three things make it one:
+   1. an exported ContentProvider with an intent filter for app.m3home.PLUGIN,
+   2. meta-data "app.m3home.plugin" on it naming its authority,
+   3. readPermission app.m3home.permission.PLUGIN_HOST, so only MaterialTV can read it.
+  See docs/plugins.md ("Android plugins").
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="app.m3home.sampleplugin">
+
+    <application
+        android:label="Sample plugin"
+        android:allowBackup="false">
+
+        <provider
+            android:name=".PluginProvider"
+            android:authorities="app.m3home.sampleplugin.plugin"
+            android:exported="true"
+            android:readPermission="app.m3home.permission.PLUGIN_HOST">
+            <intent-filter>
+                <action android:name="app.m3home.PLUGIN" />
+            </intent-filter>
+            <meta-data
+                android:name="app.m3home.plugin"
+                android:value="app.m3home.sampleplugin.plugin" />
+            <meta-data
+                android:name="app.m3home.plugin.description"
+                android:value="Shows the time since the TV started, and a row of quick links." />
+        </provider>
+    </application>
+</manifest>

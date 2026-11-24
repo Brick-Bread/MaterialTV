@@ -59,6 +59,10 @@
       "source": { "type": "github", "repo": "localsend/localsend", "asset_regex": "^LocalSend-.*-android-arm32v7\\.apk$" } },
     { "id": "tailscale", "name": "Tailscale", "package": "com.tailscale.ipn", "category": "Tools",
       "description": "Private network to your own devices (about 100 MB)",
-      "source": { "type": "github", "repo": "tailscale/tailscale-android", "asset_regex": "^tailscale-android-universal-.*\\.apk$" } }
+      "source": { "type": "github", "repo": "tailscale/tailscale-android", "asset_regex": "^tailscale-android-universal-.*\\.apk$" } },
+
+    { "id": "world-clocks", "name": "World clocks", "type": "plugin", "category": "Plugins",
+      "description": "Plugin: a world-clock widget and row, and a night-blue theme",
+      "manifest": "https://brick-bread.github.io/MaterialTV/plugins/examples/world-clocks.json" }
   ]
 }

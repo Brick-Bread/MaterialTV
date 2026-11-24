@@ -44,6 +44,11 @@ import java.util.function.Supplier;
  */
 public class SettingsActivity extends Activity {
     static final String EXTRA_QUICK = "quick";
+    /** Open on this page (over the top page): PLUGINS. */
+    static final String EXTRA_PAGE = "page";
+    static final String PLUGINS = "plugins";
+    /** One plugin's page: PLUGIN_PAGE + plugin id. */
+    private static final String PLUGIN_PAGE = "plugin:";
 
     private static final String TOP = "top", CUSTOMISE = "customise", SCREENSAVER = "screensaver",
             WIDGETS = "widgets", SYSTEM = "system";
@@ -138,7 +143,10 @@ public class SettingsActivity extends Activity {
                 focus = state.getInt("focus", 0);
             }
         }
-        if (pages.isEmpty()) pages.push(TOP);
+        if (pages.isEmpty()) {
+            pages.push(TOP);
+            if (PLUGINS.equals(getIntent().getStringExtra(EXTRA_PAGE))) { openers.push(0); pages.push(PLUGINS); }
+        }
         render(focus);
 
         // Wallpaper downloads report here; each theme row (and the slideshow count) redraws itself.
@@ -169,6 +177,7 @@ public class SettingsActivity extends Activity {
         pages.clear();
         openers.clear();
         pages.push(TOP);
+        if (PLUGINS.equals(intent.getStringExtra(EXTRA_PAGE))) { openers.push(0); pages.push(PLUGINS); }
         render(0);
     }
 
@@ -232,6 +241,8 @@ public class SettingsActivity extends Activity {
         else if (SCREENSAVER.equals(page)) screensaverPage();
         else if (WIDGETS.equals(page)) widgetsPage();
         else if (SYSTEM.equals(page)) systemPage();
+        else if (PLUGINS.equals(page)) pluginsPage();
+        else if (page != null && page.startsWith(PLUGIN_PAGE)) pluginPage(page.substring(PLUGIN_PAGE.length()));
         else topPage();
         View target = focus > 0 && focus < focusables.size() ? focusables.get(focus) : firstRow;
         if (target == firstRow) sheet.scrollTo(0, 0);
@@ -274,6 +285,7 @@ public class SettingsActivity extends Activity {
                         .putExtra(DeadlinesActivity.EXTRA_CUSTOMISE, true)));
         link("Screensaver & sleep", screensaverSummary(), () -> push(SCREENSAVER));
         link("Widgets", widgetsSummary(), () -> push(WIDGETS));
+        link("Plugins", pluginsSummary(), () -> push(PLUGINS));
         link("System", "Brightness, blue light, Fire TV setup, updates, Fire TV settings", () -> push(SYSTEM));
     }
 
@@ -547,6 +559,139 @@ public class SettingsActivity extends Activity {
         note(ip == null ? "Tailscale is off" : ip.isEmpty() ? "Tailscale is on" : "Tailscale · " + Net.show(this, ip));
     }
 
+    // ---- plugins -----------------------------------------------------------------------------
+
+    private void pluginsPage() {
+        title("Settings", "Plugins");
+        note("Plugins add Home widgets, rows of tiles, themes and shortcuts. Web plugins are added by link "
+                + "from your phone or the Get apps row; Android plugins are apps, and stay off until you switch them on here.");
+        List<Plugins.Plugin> all = Plugins.all(this);
+        header("Installed");
+        if (all.isEmpty()) note("No plugins yet.");
+        for (final Plugins.Plugin p : all) {
+            boolean on = Plugins.enabled(this, p);
+            link(p.name, (on ? "On" : "Off") + " · " + (p.android() ? "Android app · " : "") + p.adds(),
+                    () -> push(PLUGIN_PAGE + p.id));
+        }
+        header("Add and update");
+        link("Add a plugin from your phone", "Scan a QR code, then paste the plugin's link under Plugins",
+                () -> startActivity(new Intent(this, DeadlinesActivity.class)
+                        .putExtra(DeadlinesActivity.EXTRA_CUSTOMISE, true)));
+        link("Refresh plugins", "Reload every plugin, and look for new Android plugins", this::refreshPlugins);
+        note("Make your own: brick-bread.github.io/MaterialTV/plugins.html");
+    }
+
+    private void pluginPage(final String id) {
+        final Plugins.Plugin p = Plugins.find(this, id);
+        if (p == null) {
+            title("Plugins", "Plugin");
+            note("This plugin isn't installed any more.");
+            return;
+        }
+        title("Plugins", p.name);
+        StringBuilder about = new StringBuilder();
+        if (!p.description.isEmpty()) about.append(p.description).append('\n');
+        about.append(p.android() ? "Android app " + p.pkg : (p.author.isEmpty() ? "" : "By " + p.author + " · ") + p.url);
+        if (!p.version.isEmpty()) about.append(" · version ").append(p.version);
+        note(about.toString());
+
+        toggle("On", p.adds(), () -> Plugins.enabled(this, p), v -> {
+            Prefs.of(this).edit().putBoolean(Prefs.PLUGIN_ON + p.id, v).commit(); // shows at once; the rest in the background
+            final Context app = getApplicationContext();
+            new Thread(() -> {
+                Plugins.setEnabled(app, p.id, v);
+                runOnUiThread(() -> { if (!isDestroyed()) refresh(); });
+            }, "m3home-plugin-enable").start();
+        });
+        boolean on = Plugins.enabled(this, p);
+        if (on && !p.rowKeys().isEmpty()) {
+            header("Rows on Home");
+            for (final String key : p.rowKeys()) {
+                String rowTitle = Plugins.rowTitle(this, key);
+                toggle(key.endsWith("/" + Plugins.ACTIONS_ROW) ? "Shortcuts row" : rowTitle == null ? key : rowTitle, null,
+                        () -> ("," + Prefs.homeRows(this) + ",").contains("," + key + ","),
+                        v -> Plugins.showRow(this, key, v));
+            }
+        }
+        if (on && !p.actions.isEmpty()) {
+            header("Shortcuts in favourites");
+            final Apps apps = new Apps(this);
+            for (final Plugins.Action a : p.actions) {
+                toggle(a.title, a.type.equals("webhook") ? "Smart home action" : a.type.equals("app") ? "Opens an app" : "Opens a web page",
+                        () -> apps.isFavourite(a.favId()), v -> {
+                            if (v != apps.isFavourite(a.favId())) apps.toggle(a.favId());
+                        });
+            }
+        }
+        if (p.theme != null) {
+            header("Theme");
+            link("Apply theme", themeSummary(p.theme), () -> {
+                Toast.makeText(this, "Applying " + p.name + "…", Toast.LENGTH_SHORT).show();
+                final Context app = getApplicationContext();
+                new Thread(() -> {
+                    String msg = Plugins.applyTheme(app, p);
+                    runOnUiThread(() -> {
+                        Toast.makeText(app, msg, Toast.LENGTH_LONG).show();
+                        if (isDestroyed()) return;
+                        seenRev = Prefs.lookRev(this);
+                        M3.init(this);
+                        if (Prefs.textScale(this) != builtScale) recreate(); else refresh();
+                    });
+                }, "m3home-plugin-theme").start();
+            });
+        }
+        header("Manage");
+        link("Refresh", "Fetch its widgets and rows again now", this::refreshPlugins);
+        if (p.android()) {
+            link("Uninstall the app", "Android plugins are removed by uninstalling them",
+                    () -> open(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.parse("package:" + p.pkg))));
+        } else {
+            link("Remove plugin", "Takes off its rows, widgets and shortcuts", () -> {
+                List<CharSequence> opts = new ArrayList<>();
+                opts.add("Remove " + p.name);
+                opts.add("Keep it");
+                M3Menu.show(this, "Remove " + p.name + "?", opts, which -> {
+                    if (which != 0) return;
+                    Plugins.remove(this, p.id);
+                    Toast.makeText(this, p.name + " removed", Toast.LENGTH_SHORT).show();
+                    onBackPressed();
+                });
+            });
+        }
+    }
+
+    private void refreshPlugins() {
+        Toast.makeText(this, "Refreshing plugins…", Toast.LENGTH_SHORT).show();
+        final Context app = getApplicationContext();
+        new Thread(() -> {
+            String msg = Plugins.refreshAll(app);
+            runOnUiThread(() -> {
+                Toast.makeText(app, msg, Toast.LENGTH_LONG).show();
+                if (!isDestroyed()) refresh();
+            });
+        }, "m3home-plugins-refresh").start();
+    }
+
+    /** "Accent #1E88E5 · Dark · a picture background". */
+    private static String themeSummary(org.json.JSONObject t) {
+        List<String> out = new ArrayList<>();
+        if (t.has("accent")) out.add("Accent " + t.optString("accent"));
+        if (t.has("mode")) out.add(t.optString("mode").equals("light") ? "Light" : "Dark");
+        if (t.has("background_url")) out.add("a picture background");
+        else if (t.has("background_color")) out.add("background " + t.optString("background_color"));
+        if (t.has("tile_size")) out.add(t.optString("tile_size") + " tiles");
+        return out.isEmpty() ? "Changes the look" : TextUtils.join(" · ", out);
+    }
+
+    /** "2 plugins · 1 on". */
+    private String pluginsSummary() {
+        List<Plugins.Plugin> all = Plugins.all(this);
+        if (all.isEmpty()) return "Add widgets, rows, themes and shortcuts";
+        int on = 0;
+        for (Plugins.Plugin p : all) if (Plugins.enabled(this, p)) on++;
+        return all.size() + (all.size() == 1 ? " plugin · " : " plugins · ") + on + " on";
+    }
+
     // ---- page parts and summaries -------------------------------------------------------
 
     private void stayAwakeRow() {
@@ -601,7 +746,9 @@ public class SettingsActivity extends Activity {
         List<String> out = new ArrayList<>();
         for (String s : Prefs.homeRows(this).split(",")) {
             String id = s.trim();
-            if (Arrays.asList(ALL_ROW_IDS).contains(id) && !out.contains(id)) out.add(id);
+            // Plugin rows ride along, so saving the built-in rows keeps them (Settings > Plugins shows or hides them).
+            boolean known = Arrays.asList(ALL_ROW_IDS).contains(id) || id.startsWith(Plugins.ROW_PREFIX);
+            if (known && !out.contains(id)) out.add(id);
         }
         return out;
     }

@@ -18,6 +18,20 @@
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 
+    <!-- Plugins (docs/plugins.md): an Android plugin can protect its provider with this permission,
+         so only MaterialTV (signed with MaterialTV's key) can read it. -->
+    <permission
+        android:name="app.m3home.permission.PLUGIN_HOST"
+        android:label="Show MaterialTV plugins"
+        android:protectionLevel="signature" />
+    <uses-permission android:name="app.m3home.permission.PLUGIN_HOST" />
+    <!-- Finds Android plugins (apps answering app.m3home.PLUGIN); needed on Android 11 and newer. -->
+    <queries>
+        <intent>
+            <action android:name="app.m3home.PLUGIN" />
+        </intent>
+    </queries>
+
     <uses-feature android:name="android.software.leanback" android:required="false" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
 

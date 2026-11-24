@@ -62,6 +62,9 @@ public class Home extends Activity {
     private static final int TILE_LABEL = 0xE6FFFFFF;
 
     private static final int ROW_FAVS = 0, ROW_RECENTS = 1, ROW_GRID = 2, ROW_STORE = 3;
+    /** Plugin rows are numbered from here, in the order of pluginRowKeys. */
+    private static final int ROW_PLUGIN = 100;
+    private static final long PLUGIN_POLL_MS = 60_000;
 
     private final Handler ui = new Handler(Looper.getMainLooper());
     private Apps apps;
@@ -85,6 +88,21 @@ public class Home extends Activity {
     private final java.util.Map<String, Object[]> storeBadges = new java.util.HashMap<>();
     private LinearLayout storeSection, storeRow;
     private int storeFocus;
+
+    // Plugins: their rows ("plugin:<plugin>/<row>" ids, numbered from ROW_PLUGIN), header widgets and shortcuts.
+    private final List<String> pluginRowKeys = new ArrayList<>();
+    private final List<LinearLayout> pluginSections = new ArrayList<>(), pluginRows = new ArrayList<>();
+    private Plugins.Snapshot plugins = new Plugins.Snapshot();
+    private LinearLayout pluginChips;
+    private int pluginFocus;
+    private static final String PLUGIN_TAG = "m3home:plugin:";
+
+    private final Runnable pollPlugins = new Runnable() {
+        @Override public void run() {
+            Plugins.refreshDue(Home.this, new java.util.HashSet<>(pluginRowKeys));
+            ui.postDelayed(this, PLUGIN_POLL_MS);
+        }
+    };
 
     // Move mode: a favourite picked up and carried with Left/Right.
     private String movingPkg;
@@ -118,6 +136,7 @@ public class Home extends Activity {
 
     private final BroadcastReceiver packageReceiver = new BroadcastReceiver() {
         @Override public void onReceive(Context c, Intent i) {
+            Plugins.invalidate(); // an Android plugin may have come or gone
             dirty = true;
             if (resumed) load();
         }
@@ -166,6 +185,12 @@ public class Home extends Activity {
             dirty = true;
             if (resumed) load();
         });
+        // New plugin data (or a plugin installed from the Get apps row) reloads the plugin rows.
+        Plugins.setListener(() -> {
+            if (Prefs.lookRev(this) != builtRev) { if (resumed) recreate(); return; }
+            dirty = true;
+            if (resumed) load();
+        });
     }
 
     @Override
@@ -188,6 +213,8 @@ public class Home extends Activity {
         if (order.contains(ROW_STORE)) Store.refreshIfDue(this);
         ui.removeCallbacks(pollTailscale);
         ui.post(pollTailscale);
+        ui.removeCallbacks(pollPlugins);
+        ui.post(pollPlugins); // refreshes plugin widgets and the rows on screen while Home shows
         if (dirty) {
             load();
         } else if (!loading) {
@@ -202,6 +229,7 @@ public class Home extends Activity {
         endMove();
         try { unregisterReceiver(timeReceiver); } catch (IllegalArgumentException ignored) { }
         ui.removeCallbacks(pollTailscale);
+        ui.removeCallbacks(pollPlugins);
     }
 
     @Override
@@ -214,6 +242,7 @@ public class Home extends Activity {
     protected void onDestroy() {
         try { unregisterReceiver(packageReceiver); } catch (IllegalArgumentException ignored) { }
         Store.setListener(null); // installs carry on; only the badges stop
+        Plugins.setListener(null);
         super.onDestroy();
     }
 
@@ -282,10 +311,15 @@ public class Home extends Activity {
     /** Row order and tile size from Prefs. */
     private void readLayout() {
         order = new ArrayList<>();
+        pluginRowKeys.clear();
         for (String id : Prefs.homeRows(this).split(",")) {
             String s = id.trim();
             int r = s.equals("favourites") ? ROW_FAVS : s.equals("recents") ? ROW_RECENTS
                     : s.equals("apps") ? ROW_GRID : s.equals("store") ? ROW_STORE : -1;
+            if (r < 0 && !pluginRowKeys.contains(s) && Plugins.rowTitle(this, s) != null) {
+                pluginRowKeys.add(s); // a row from an enabled plugin
+                r = ROW_PLUGIN + pluginRowKeys.size() - 1;
+            }
             if (r >= 0 && !order.contains(r)) order.add(r);
         }
         if (order.isEmpty()) order.add(ROW_GRID); // never an empty Home: the apps grid shows anyway
@@ -362,6 +396,23 @@ public class Home extends Activity {
         storeRow = row();
         storeSection.addView(rowScroller(storeRow));
 
+        // Plugin rows: the row's name, with the plugin's name beside it.
+        pluginSections.clear();
+        pluginRows.clear();
+        for (String key : pluginRowKeys) {
+            TextView[] by = new TextView[1];
+            String title = Plugins.rowTitle(this, key);
+            LinearLayout sec = section(title, by);
+            String[] k = Plugins.splitKey(key, Plugins.ROW_PREFIX);
+            Plugins.Plugin p = k == null ? null : Plugins.find(this, k[0]);
+            if (p != null && !p.name.equals(title)) by[0].setText(p.name);
+            LinearLayout r = row();
+            sec.addView(rowScroller(r));
+            sec.setVisibility(View.GONE); // until it has something to show
+            pluginSections.add(sec);
+            pluginRows.add(r);
+        }
+
         for (int r : order) column.addView(sectionView(r)); // hidden rows are never added
 
         scroll.addView(column);
@@ -402,6 +453,15 @@ public class Home extends Activity {
         tlLp.topMargin = dp(2);
         left.addView(timeLine, tlLp);
         header.addView(left, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        // Plugin widgets: small status chips (not focusable), like the Tailscale one.
+        pluginChips = new LinearLayout(this);
+        pluginChips.setOrientation(LinearLayout.HORIZONTAL);
+        pluginChips.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams pcLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, dp(44));
+        pcLp.bottomMargin = dp(8);
+        header.addView(pluginChips, pcLp);
 
         // Tailscale status chip (status only, not focusable).
         tsChip = new LinearLayout(this);
@@ -702,6 +762,7 @@ public class Home extends Activity {
         focusPkg = tag;
         focusRow = row;
         if (row == ROW_STORE) storeFocus = storeRow.indexOfChild(tile);
+        if (row >= ROW_PLUGIN) pluginFocus = rowView(row).indexOfChild(tile);
         keepVisible(tile, row);
     }
 
@@ -853,6 +914,7 @@ public class Home extends Activity {
     /** The detail sheet: what the app is, where it comes from, and Install / Update / Open / Remove. */
     private void showStoreDetail(final Store.Item item) {
         final Store.Entry e = item.entry;
+        if (e.plugin()) { showPluginOffer(e); return; }
         StringBuilder about = new StringBuilder();
         if (!e.description.isEmpty()) about.append(e.description).append('\n');
         if (e.appstore()) about.append("Installs via the Fire TV app store (no direct download from the maker)");
@@ -898,6 +960,137 @@ public class Home extends Activity {
         }
         M3Menu.show(this, e.name, about.toString(), labels, which -> actions.get(which).run());
     }
+    // ---- plugins ----------------------------------------------------------------------------
+
+    /** A Get apps plugin: what it is, and Install. Installed plugins live in Settings > Plugins. */
+    private void showPluginOffer(final Store.Entry e) {
+        String about = (e.description.isEmpty() ? "" : e.description + "\n")
+                + "A MaterialTV plugin from " + e.source() + ". It can add widgets, rows, a theme or shortcuts; "
+                + "it runs no code on your TV. Manage it in Settings > Plugins.";
+        List<CharSequence> labels = new ArrayList<>();
+        labels.add("Install plugin");
+        M3Menu.show(this, e.name, about, labels, which -> {
+            Toast.makeText(this, "Installing " + e.name + "…", Toast.LENGTH_SHORT).show();
+            final Context app = getApplicationContext();
+            new Thread(() -> {
+                String msg = Plugins.install(app, e.url);
+                ui.post(() -> Toast.makeText(app, msg, Toast.LENGTH_LONG).show());
+            }, "m3home-plugin-install").start();
+        });
+    }
+
+    /**
+     * A plugin tile: a row item's picture, or its icon (a picture or an emoji) on a colour from its
+     * name. Select does what it says; Menu (or a long press) offers favourites.
+     */
+    private View pluginTile(final String tag, final Plugins.Card card, int widthDp, final int row) {
+        android.graphics.Bitmap art = Plugins.memoryPicture(card.image);
+        View icon = null;
+        if (art == null) {
+            android.graphics.Bitmap pic = Plugins.isPicture(card.icon) ? Plugins.memoryPicture(card.icon) : null;
+            if (pic != null) {
+                ImageView iv = new ImageView(this);
+                iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                iv.setImageBitmap(pic);
+                icon = iv;
+            } else {
+                TextView glyph = new TextView(this);
+                glyph.setText(card.icon != null && !Plugins.isPicture(card.icon) ? card.icon
+                        : new String(Character.toChars(card.title.codePointAt(0))).toUpperCase(java.util.Locale.ROOT));
+                glyph.setGravity(Gravity.CENTER);
+                glyph.setIncludeFontPadding(false);
+                glyph.setTextColor(TILE_LABEL);
+                glyph.setTypeface(M3.MEDIUM);
+                icon = glyph;
+            }
+        }
+        LinearLayout tile = cardTile(tag, card.title, Plugins.tint(card.title), icon, art, widthDp, row);
+        tile.setOnClickListener(v -> {
+            if (card.action != null) Plugins.run(this, card.action);
+            else showPluginOptions(tag, card, row);
+        });
+        tile.setOnLongClickListener(v -> { showPluginOptions(tag, card, row); return true; });
+        tile.setOnKeyListener((v, code, ev) -> {
+            if (code == KeyEvent.KEYCODE_MENU) {
+                if (ev.getAction() == KeyEvent.ACTION_UP) showPluginOptions(tag, card, row);
+                return true;
+            }
+            return false;
+        });
+        return tile;
+    }
+
+    /** Open, and Add to / Remove from favourites for a plugin's own shortcuts. */
+    private void showPluginOptions(final String tag, final Plugins.Card card, final int row) {
+        final List<CharSequence> labels = new ArrayList<>();
+        final List<Runnable> actions = new ArrayList<>();
+        final Plugins.Action act = card.action;
+        if (act != null) {
+            labels.add(act.type.equals("webhook") ? "Run" : "Open");
+            actions.add(() -> Plugins.run(this, act));
+        }
+        final String favId = act == null ? null : act.favId();
+        if (favId != null) {
+            final boolean fav = apps.isFavourite(favId);
+            labels.add(fav ? "Remove from favourites" : "Add to favourites");
+            actions.add(() -> {
+                apps.toggle(favId);
+                focusPkg = fav ? null : favId;
+                focusRow = fav ? row : ROW_FAVS;
+                render();
+                if (!fav && !order.contains(ROW_FAVS)) {
+                    Toast.makeText(this, "Added. Favourites are hidden; turn them on in Settings.", Toast.LENGTH_LONG).show();
+                }
+            });
+            if (fav && row == ROW_FAVS && favTileCount() > 1) {
+                labels.add("Move");
+                actions.add(() -> startMove(tag));
+            }
+        }
+        labels.add("Plugin settings");
+        actions.add(() -> startActivity(new Intent(this, SettingsActivity.class)
+                .putExtra(SettingsActivity.EXTRA_PAGE, SettingsActivity.PLUGINS)));
+        M3Menu.show(this, card.title, card.subtitle, labels, which -> actions.get(which).run());
+    }
+
+    /** The enabled plugins' widgets as status chips in the header (at most three). */
+    private void renderPluginWidgets() {
+        pluginChips.removeAllViews();
+        for (Plugins.Card w : plugins.widgets) {
+            LinearLayout chip = new LinearLayout(this);
+            chip.setOrientation(LinearLayout.HORIZONTAL);
+            chip.setGravity(Gravity.CENTER_VERTICAL);
+            chip.setPadding(dp(14), 0, dp(18), 0);
+            chip.setBackground(M3.rounded(M3.SECONDARY_CONT, dp(22)));
+            android.graphics.Bitmap pic = Plugins.isPicture(w.icon) ? Plugins.memoryPicture(w.icon) : null;
+            if (pic != null) {
+                ImageView iv = new ImageView(this);
+                iv.setImageBitmap(pic);
+                iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                LinearLayout.LayoutParams ilp = new LinearLayout.LayoutParams(dp(22), dp(22));
+                ilp.rightMargin = dp(10);
+                chip.addView(iv, ilp);
+            } else if (w.icon != null && !Plugins.isPicture(w.icon)) {
+                TextView g = new TextView(this);
+                g.setText(w.icon);
+                style(g, 16, M3.ON_SECONDARY_CONT, M3.MEDIUM);
+                g.setPadding(0, 0, dp(8), 0);
+                chip.addView(g);
+            }
+            TextView t = new TextView(this);
+            t.setText(w.subtitle == null ? w.title : w.title + " · " + w.subtitle);
+            style(t, 15, M3.ON_SECONDARY_CONT, M3.MEDIUM);
+            t.setSingleLine(true);
+            t.setEllipsize(TextUtils.TruncateAt.END);
+            t.setMaxWidth(dp(280));
+            chip.addView(t);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT);
+            lp.rightMargin = dp(14);
+            pluginChips.addView(chip, lp);
+        }
+    }
+
     /** Scrolls so a focused row shows with its title, or a grid tile sits comfortably on screen. */
     private void keepVisible(final View tile, final int row) {
         ui.post(() -> {
@@ -939,10 +1132,12 @@ public class Home extends Activity {
         new Thread(() -> {
             final List<Apps.App> list = apps.load();
             final List<Store.Item> store = order.contains(ROW_STORE) ? Store.items(this) : new ArrayList<>();
+            final Plugins.Snapshot plug = Plugins.snapshot(this, new ArrayList<>(pluginRowKeys));
             ui.post(() -> {
                 loading = false;
                 installed = list;
                 storeItems = store;
+                plugins = plug;
                 apps.seedDefaults(list);
                 render();
                 if (dirty && resumed) load();
@@ -964,6 +1159,12 @@ public class Home extends Activity {
         favRow.removeAllViews();
         if (order.contains(ROW_FAVS)) {
             for (String pkg : apps.favourites()) {
+                if (pkg.startsWith(Plugins.FAV_PREFIX)) { // a plugin shortcut
+                    Plugins.Action act = plugins.favourites.get(pkg);
+                    if (act != null) favRow.addView(pluginTile(pkg, new Plugins.Card(act.title, null, null, act.icon, act),
+                            favTileDp, ROW_FAVS), rowLp());
+                    continue;
+                }
                 Apps.App a = find(pkg);
                 if (a != null) favRow.addView(tile(a, favTileDp, ROW_FAVS), rowLp());
             }
@@ -1007,6 +1208,20 @@ public class Home extends Activity {
             storeRow.addView(addAppTile(), rowLp());
         }
 
+        for (int i = 0; i < pluginRowKeys.size(); i++) {
+            String key = pluginRowKeys.get(i);
+            LinearLayout r = pluginRows.get(i);
+            r.removeAllViews();
+            List<Plugins.Card> cards = plugins.rows.get(key);
+            if (cards != null) {
+                for (int j = 0; j < cards.size(); j++) {
+                    r.addView(pluginTile(PLUGIN_TAG + key + "#" + j, cards.get(j), recentTileDp, ROW_PLUGIN + i), rowLp());
+                }
+            }
+            pluginSections.get(i).setVisibility(r.getChildCount() == 0 ? View.GONE : View.VISIBLE);
+        }
+        renderPluginWidgets();
+
         View target = null;
         if (keepPkg != null) {
             if (order.contains(keepRow)) target = rowView(keepRow).findViewWithTag(keepPkg);
@@ -1017,6 +1232,11 @@ public class Home extends Activity {
             if (target == null && keepRow == ROW_STORE && order.contains(ROW_STORE) && storeRow.getChildCount() > 0) {
                 target = storeRow.getChildAt(Math.max(0, Math.min(storeFocus, storeRow.getChildCount() - 1)));
             }
+            // A plugin row's items changed: stay in the row, at the same place.
+            if (target == null && keepRow >= ROW_PLUGIN && order.contains(keepRow)) {
+                ViewGroup r = rowView(keepRow);
+                if (r.getChildCount() > 0) target = r.getChildAt(Math.max(0, Math.min(pluginFocus, r.getChildCount() - 1)));
+            }
         }
         if (target != null) target.requestFocus(); else focusFirstTile();
         if (moving != null && favRow.findViewWithTag(moving) != null) startMove(moving);
@@ -1024,10 +1244,12 @@ public class Home extends Activity {
     }
 
     private ViewGroup rowView(int row) {
+        if (row >= ROW_PLUGIN) return pluginRows.get(row - ROW_PLUGIN);
         return row == ROW_FAVS ? favRow : row == ROW_RECENTS ? recentRow : row == ROW_STORE ? storeRow : grid;
     }
 
     private LinearLayout sectionView(int row) {
+        if (row >= ROW_PLUGIN) return pluginSections.get(row - ROW_PLUGIN);
         return row == ROW_FAVS ? favSection : row == ROW_RECENTS ? recentSection : row == ROW_STORE ? storeSection : allSection;
     }
 

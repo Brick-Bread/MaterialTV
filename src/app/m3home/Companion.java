@@ -536,6 +536,8 @@ final class Companion {
         o.put("screensaver", ss);
 
         o.put("store", new JSONObject().put("custom", Store.customJson(c))); // your own apps in Get apps
+        o.put("plugins", Plugins.json(c));          // installed plugins (web and Android)
+        o.put("favLabels", Plugins.favLabels(c));   // names for plugin shortcuts in the favourites list
 
         JSONObject colors = new JSONObject();
         M3.Scheme s =Palette.scheme(Palette.seedOf(c, Prefs.accent(c)), Prefs.light(c));
@@ -580,7 +582,12 @@ final class Companion {
                         else ids.add(id);
                     }
                     if (bad) skipped.add("rows");
-                    else { e.putString(Prefs.HOME_ROWS, String.join(",", ids)); look = true; }
+                    else {
+                        // Plugin rows aren't on the phone's list: keep them (Settings > Plugins shows or hides them).
+                        for (String r : Prefs.homeRows(context).split(",")) if (r.startsWith(Plugins.ROW_PREFIX)) ids.add(r);
+                        e.putString(Prefs.HOME_ROWS, String.join(",", ids));
+                        look = true;
+                    }
                 }
             }
             look |= putChoice(in, "tileSize", TILE_SIZES, e, Prefs.TILE_SIZE, skipped);
@@ -663,7 +670,8 @@ final class Companion {
                         LinkedHashSet<String> favs = new LinkedHashSet<>();
                         for (int i = 0; i < a.length() && favs.size() < MAX_FAVOURITES; i++) {
                             String pkg = a.optString(i, "");
-                            if (installed.contains(pkg)) favs.add(pkg); // unknown packages are dropped
+                            // Unknown packages are dropped; plugin shortcuts stay while their plugin offers them.
+                            if (installed.contains(pkg) || Plugins.isFavourite(context, pkg)) favs.add(pkg);
                         }
                         apps.setFavourites(new ArrayList<>(favs));
                         look = true;
@@ -704,8 +712,42 @@ final class Companion {
             if (background) Backdrop.changed(context); // bumps the look too
             else if (look) Prefs.bumpLook(context);
         }
-        if (skipped.isEmpty()) return "Saved.";
-        return "Saved, but skipped: " + String.join(", ", skipped) + ".";
+        // Plugins: may go to the network (adding one, a theme's picture), so outside the lock.
+        String pluginMsg = in.has("plugins") ? applyPlugins(in.optJSONObject("plugins"), skipped) : null;
+        if (skipped.isEmpty()) return pluginMsg != null ? pluginMsg : "Saved.";
+        return (pluginMsg != null ? pluginMsg + " " : "Saved, but ") + "skipped: " + String.join(", ", skipped) + ".";
+    }
+
+    /**
+     * One plugin change from the phone: {"add": "https://…/plugin.json"}, {"enable": {"id": true}},
+     * {"remove": "id"} or {"applyTheme": "id"}. Returns what happened, or null after adding to skipped.
+     */
+    private String applyPlugins(JSONObject pl, List<String> skipped) {
+        if (pl == null) { skipped.add("plugins"); return null; }
+        if (pl.has("add")) return Plugins.install(context, pl.optString("add", ""));
+        if (pl.has("enable")) {
+            JSONObject en = pl.optJSONObject("enable");
+            if (en == null) { skipped.add("plugins"); return null; }
+            java.util.Iterator<String> it = en.keys();
+            int n = 0;
+            while (it.hasNext()) {
+                String id = it.next();
+                Object v = en.opt(id);
+                if (!(v instanceof Boolean) || Plugins.find(context, id) == null) { skipped.add("plugin " + id); continue; }
+                Plugins.setEnabled(context, id, (Boolean) v);
+                n++;
+            }
+            return n == 0 ? null : "Saved.";
+        }
+        String id = pl.optString("remove", pl.optString("applyTheme", ""));
+        Plugins.Plugin p = Plugins.find(context, id);
+        if (p == null) { skipped.add("plugins"); return null; }
+        if (pl.has("remove")) {
+            if (p.android()) return "Android plugins are removed by uninstalling the app on the TV.";
+            Plugins.remove(context, id);
+            return p.name + " removed.";
+        }
+        return Plugins.applyTheme(context, p) + ".";
     }
 
     private static boolean putChoice(JSONObject o, String name, String[] allowed, SharedPreferences.Editor e,

@@ -1,0 +1,31 @@
+{
+  "api": 1,
+  "id": "world-clocks",
+  "name": "World clocks",
+  "author": "MaterialTV",
+  "description": "A widget with the time difference to a few cities, a row of world clocks and a calm night-blue theme. An example plugin: copy it and make it yours.",
+  "version": "1.0",
+  "icon": "🌍",
+  "widgets": [
+    {
+      "id": "offsets",
+      "title": "World clocks",
+      "data_url": "https://brick-bread.github.io/MaterialTV/plugins/examples/world-clocks-widget.json",
+      "refresh_minutes": 720
+    }
+  ],
+  "rows": [
+    {
+      "id": "cities",
+      "title": "World clocks",
+      "data_url": "https://brick-bread.github.io/MaterialTV/plugins/examples/world-clocks-row.json",
+      "refresh_minutes": 720
+    }
+  ],
+  "theme": {
+    "accent": "#3F6FD8",
+    "mode": "dark",
+    "background_color": "#0B1020",
+    "tile_size": "normal"
+  }
+}
