@@ -5,8 +5,8 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-VERSION_CODE=19
-VERSION_NAME=1.11.3
+VERSION_CODE=20
+VERSION_NAME=1.12.0
 MIN_SDK=28     # Fire OS 7 (Android 9) and newer
 
 SDK=${ANDROID_HOME:-${ANDROID_SDK_ROOT:-${LOCALAPPDATA:-}/Android/Sdk}}
