@@ -43,7 +43,8 @@ import java.util.List;
 
 /**
  * The home screen, Material 3 Expressive: greeting and clock, a Tailscale chip and Settings button,
- * then Favourites, Recently used and an All apps grid, in the order (and tile size) set in Settings.
+ * then Favourites, Recently used, an All apps grid and Get apps (the little app store), in the order
+ * (and tile size) set in Settings.
  */
 public class Home extends Activity {
     /** Opens Home with the first favourite picked up, ready to move. (1.9.0 contract) */
@@ -60,7 +61,7 @@ public class Home extends Activity {
     /** Tile names stay white on every theme: the cards are always a dark tone of the app's colour. */
     private static final int TILE_LABEL = 0xE6FFFFFF;
 
-    private static final int ROW_FAVS = 0, ROW_RECENTS = 1, ROW_GRID = 2;
+    private static final int ROW_FAVS = 0, ROW_RECENTS = 1, ROW_GRID = 2, ROW_STORE = 3;
 
     private final Handler ui = new Handler(Looper.getMainLooper());
     private Apps apps;
@@ -77,6 +78,13 @@ public class Home extends Activity {
     private LinearLayout column;
     private static final String ADD_TAG = "m3home:add-favourite";
     private static final String LIFT_TAG = "m3home:lift";
+    private static final String STORE_TAG = "m3home:store:", STORE_ADD_TAG = "m3home:store-add";
+
+    // The "Get apps" row (Store): the apps it offers, each tile's badge, and where focus was.
+    private List<Store.Item> storeItems = new ArrayList<>();
+    private final java.util.Map<String, Object[]> storeBadges = new java.util.HashMap<>();
+    private LinearLayout storeSection, storeRow;
+    private int storeFocus;
 
     // Move mode: a favourite picked up and carried with Left/Right.
     private String movingPkg;
@@ -151,6 +159,13 @@ public class Home extends Activity {
         pf.addAction(Intent.ACTION_PACKAGE_REPLACED);
         pf.addDataScheme("package");
         registerReceiver(packageReceiver, pf);
+
+        // App store progress redraws one badge; a refreshed catalog reloads the row.
+        Store.setListener(id -> {
+            if (id != null) { showBadge(id); return; }
+            dirty = true;
+            if (resumed) load();
+        });
     }
 
     @Override
@@ -170,6 +185,7 @@ public class Home extends Activity {
         if (Prefs.on(this, Prefs.W_WEATHER)) Weather.refreshIfStale(this, null); // warm for the screensaver
         refreshUpdateCard();
         Updater.checkIfDue(this, () -> ui.post(this::refreshUpdateCard));
+        if (order.contains(ROW_STORE)) Store.refreshIfDue(this);
         ui.removeCallbacks(pollTailscale);
         ui.post(pollTailscale);
         if (dirty) {
@@ -197,6 +213,7 @@ public class Home extends Activity {
     @Override
     protected void onDestroy() {
         try { unregisterReceiver(packageReceiver); } catch (IllegalArgumentException ignored) { }
+        Store.setListener(null); // installs carry on; only the badges stop
         super.onDestroy();
     }
 
@@ -268,7 +285,7 @@ public class Home extends Activity {
         for (String id : Prefs.homeRows(this).split(",")) {
             String s = id.trim();
             int r = s.equals("favourites") ? ROW_FAVS : s.equals("recents") ? ROW_RECENTS
-                    : s.equals("apps") ? ROW_GRID : -1;
+                    : s.equals("apps") ? ROW_GRID : s.equals("store") ? ROW_STORE : -1;
             if (r >= 0 && !order.contains(r)) order.add(r);
         }
         if (order.isEmpty()) order.add(ROW_GRID); // never an empty Home: the apps grid shows anyway
@@ -339,6 +356,11 @@ public class Home extends Activity {
                 ViewGroup.LayoutParams.WRAP_CONTENT, dp(48));
         hbLp.topMargin = dp(8);
         allSection.addView(hiddenButton, hbLp);
+
+        // Get apps
+        storeSection = section("Get apps", null);
+        storeRow = row();
+        storeSection.addView(rowScroller(storeRow));
 
         for (int r : order) column.addView(sectionView(r)); // hidden rows are never added
 
@@ -565,19 +587,45 @@ public class Home extends Activity {
      * with the label beneath. On focus the corners morph rounder and the card springs up.
      */
     private View tile(final Apps.App app, int widthDp, final int row) {
+        View icon = null;
+        if (app.art == null) {
+            ImageView iv = new ImageView(this);
+            iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            iv.setImageDrawable(app.icon);
+            icon = iv;
+        }
+        final LinearLayout tile = cardTile(app.pkg, app.label, app.tint, icon, app.art, widthDp, row);
+        tile.setOnClickListener(v -> launch(app));
+        tile.setOnLongClickListener(v -> { showOptions(app, row); return true; });
+        tile.setOnKeyListener((v, code, ev) -> {
+            if (code == KeyEvent.KEYCODE_MENU) {
+                if (ev.getAction() == KeyEvent.ACTION_UP) showOptions(app, row);
+                return true;
+            }
+            return false;
+        });
+        return tile;
+    }
+
+    /**
+     * The card every tile shares: a tonal gradient from the app's colour, its icon (or your own
+     * picture) and its name inside. tag identifies it for focus restore.
+     */
+    private LinearLayout cardTile(final String tag, String name, int tint, View icon, android.graphics.Bitmap art,
+                                  int widthDp, final int row) {
         final LinearLayout tile = new LinearLayout(this);
         tile.setOrientation(LinearLayout.VERTICAL);
         tile.setFocusable(true);
         tile.setClickable(true);
         tile.setClipChildren(false);
-        tile.setTag(app.pkg);
+        tile.setTag(tag);
 
         final int w = dp(widthDp), h = Math.round(w * TILE_RATIO);
         final float rest = dp(20), focused = dp(32);
         // Every tile is drawn the same M3 way: a tonal gradient from the app's own colour,
         // its sharpest icon, and its name inside the card. Your own picture replaces it all.
         final GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                new int[] { M3.tone(app.tint, 1.35f), app.tint, M3.tone(app.tint, 0.72f) });
+                new int[] { M3.tone(tint, 1.35f), tint, M3.tone(tint, 0.72f) });
         bg.setCornerRadius(rest);
         final GradientDrawable ring = M3.outlined(Color.TRANSPARENT, M3.PRIMARY, dp(3), rest);
 
@@ -586,18 +634,18 @@ public class Home extends Activity {
         card.setClipToOutline(true);
         card.setTag(ring); // move mode thickens it
         float nameSp = widthDp >= 200 ? 17 : 14;
-        if (app.art != null) {
-            ImageView art = new ImageView(this);
-            art.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            art.setImageBitmap(app.art);
-            card.addView(art, new FrameLayout.LayoutParams(
+        if (art != null) {
+            ImageView pic = new ImageView(this);
+            pic.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            pic.setImageBitmap(art);
+            card.addView(pic, new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             View scrim = new View(this);
             scrim.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
                     new int[] { Color.TRANSPARENT, Color.TRANSPARENT, 0xC0000000 })); // name scrim on the picture
             card.addView(scrim, new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        } else {
+        } else if (icon != null) {
             // A soft lighter disc behind the icon, so dark and light icons both sit well.
             View plate = new View(this);
             plate.setBackground(M3.circle(0x1FFFFFFF));
@@ -606,16 +654,14 @@ public class Home extends Activity {
                     Gravity.CENTER_HORIZONTAL | Gravity.TOP);
             plp.topMargin = Math.round(h * 0.10f);
             card.addView(plate, plp);
-            ImageView icon = new ImageView(this);
-            icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            icon.setImageDrawable(app.icon);
             int size = Math.round(h * 0.40f);
+            if (icon instanceof TextView) ((TextView) icon).setTextSize(TypedValue.COMPLEX_UNIT_PX, size * 0.7f);
             FrameLayout.LayoutParams ilp = new FrameLayout.LayoutParams(size, size, Gravity.CENTER_HORIZONTAL | Gravity.TOP);
             ilp.topMargin = Math.round(h * 0.10f) + (plateSize - size) / 2;
             card.addView(icon, ilp);
         }
         final TextView label = new TextView(this);
-        label.setText(app.label);
+        label.setText(name);
         label.setSingleLine(true);
         label.setEllipsize(TextUtils.TruncateAt.MARQUEE);
         label.setMarqueeRepeatLimit(-1);
@@ -645,35 +691,37 @@ public class Home extends Activity {
             pop(card, has, 1.1f);
             label.setTextColor(has ? Color.WHITE : TILE_LABEL);
             label.setSelected(has); // scrolls a long name while the tile is highlighted
-            if (has) {
-                if (movingPkg != null && !movingPkg.equals(app.pkg)) endMove(); // focus left it (touch etc.)
-                focusPkg = app.pkg;
-                focusRow = row;
-                keepVisible(tile, row);
-            }
-        });
-        tile.setOnClickListener(v -> launch(app));
-        tile.setOnLongClickListener(v -> { showOptions(app, row); return true; });
-        tile.setOnKeyListener((v, code, ev) -> {
-            if (code == KeyEvent.KEYCODE_MENU) {
-                if (ev.getAction() == KeyEvent.ACTION_UP) showOptions(app, row);
-                return true;
-            }
-            return false;
+            if (has) focused(tile, tag, row);
         });
         return tile;
     }
 
+    /** Bookkeeping when a tile takes focus: where to come back to, and keeping it on screen. */
+    private void focused(View tile, String tag, int row) {
+        if (movingPkg != null && !movingPkg.equals(tag)) endMove(); // focus left it (touch etc.)
+        focusPkg = tag;
+        focusRow = row;
+        if (row == ROW_STORE) storeFocus = storeRow.indexOfChild(tile);
+        keepVisible(tile, row);
+    }
+
     /** The last card in Favourites: a dashed outline with a "+" that opens a list of apps to pin. */
     private View addFavouriteTile() {
+        View t = dashedTile("Add favourite", ADD_TAG, favTileDp, ROW_FAVS);
+        t.setOnClickListener(v -> showAddFavourite());
+        return t;
+    }
+
+    /** A dashed card with a "+" bubble: Add favourite, and the app store's Add an app. */
+    private View dashedTile(String text, final String tag, int widthDp, final int row) {
         final LinearLayout tile = new LinearLayout(this);
         tile.setOrientation(LinearLayout.VERTICAL);
         tile.setFocusable(true);
         tile.setClickable(true);
         tile.setClipChildren(false);
-        tile.setTag(ADD_TAG);
+        tile.setTag(tag);
 
-        final int w = dp(favTileDp);
+        final int w = dp(widthDp);
         final float rest = dp(18), focused = dp(30);
         final int idle = M3.alpha(M3.SURFACE, 0x55), lit = M3.alpha(M3.PRIMARY_CONT, 0x80);
         final GradientDrawable bg = new GradientDrawable();
@@ -696,10 +744,10 @@ public class Home extends Activity {
         blp.topMargin = Math.round(h * 0.18f);
         card.addView(plusBubble, blp);
         final TextView label = new TextView(this);
-        label.setText("Add favourite");
+        label.setText(text);
         label.setGravity(Gravity.CENTER);
         label.setPadding(dp(10), 0, dp(10), Math.round(h * 0.07f));
-        style(label, favTileDp >= 200 ? 17 : 14, M3.ON_SURFACE_VAR, M3.MEDIUM);
+        style(label, widthDp >= 200 ? 17 : 14, M3.ON_SURFACE_VAR, M3.MEDIUM);
         card.addView(label, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM));
         tile.addView(card, new LinearLayout.LayoutParams(w, h));
@@ -720,17 +768,136 @@ public class Home extends Activity {
             morph[0] = a;
             pop(card, has, 1.1f);
             label.setTextColor(has ? M3.ON_SURFACE : M3.ON_SURFACE_VAR);
-            if (has) {
-                if (movingPkg != null) endMove();
-                focusPkg = ADD_TAG;
-                focusRow = ROW_FAVS;
-                keepVisible(tile, ROW_FAVS);
-            }
+            if (has) focused(tile, tag, row);
         });
-        tile.setOnClickListener(v -> showAddFavourite());
         return tile;
     }
 
+    // ---- the app store row ----------------------------------------------------------------
+
+    /** A "Get apps" card: the app's icon or first letter, with a badge (Get, Update, 42%…). */
+    private View storeTile(final Store.Item item) {
+        final Store.Entry e = item.entry;
+        View icon;
+        if (item.icon != null) {
+            ImageView iv = new ImageView(this);
+            iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            iv.setImageBitmap(item.icon);
+            icon = iv;
+        } else {
+            TextView letter = new TextView(this);
+            letter.setText(e.name.substring(0, 1).toUpperCase(java.util.Locale.ROOT));
+            letter.setGravity(Gravity.CENTER);
+            letter.setIncludeFontPadding(false);
+            letter.setTextColor(TILE_LABEL);
+            letter.setTypeface(M3.MEDIUM);
+            icon = letter;
+        }
+        LinearLayout tile = cardTile(STORE_TAG + e.id, e.name, item.tint, icon, null, recentTileDp, ROW_STORE);
+        FrameLayout card = (FrameLayout) tile.getChildAt(0);
+        TextView badge = new TextView(this);
+        style(badge, 13, M3.ON_PRIMARY, M3.MEDIUM);
+        badge.setPadding(dp(10), dp(3), dp(10), dp(4));
+        FrameLayout.LayoutParams blp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.END);
+        blp.topMargin = blp.rightMargin = dp(8);
+        card.addView(badge, blp);
+        storeBadges.put(e.id, new Object[] { badge, item });
+        showBadge(e.id);
+        tile.setOnClickListener(v -> showStoreDetail(item));
+        return tile;
+    }
+
+    /** The badge for an app: its install progress, a problem, or what Select will do. */
+    private void showBadge(String id) {
+        Object[] b = storeBadges.get(id);
+        if (b == null) return;
+        TextView badge = (TextView) b[0];
+        Store.Item item = (Store.Item) b[1];
+        String busy = Store.status(id);
+        String text;
+        int fill = M3.PRIMARY, ink = M3.ON_PRIMARY;
+        if (busy != null) text = busy;
+        else if (Store.problem(id) != null) { text = "Failed"; fill = M3.ERROR; ink = M3.BACKGROUND; }
+        else if (item.state == Store.UPDATE) text = "Update";
+        else if (item.state == Store.INSTALLED) { text = "Installed"; fill = M3.SECONDARY_CONT; ink = M3.ON_SECONDARY_CONT; }
+        else text = "Get";
+        badge.setText(text);
+        badge.setTextColor(ink);
+        badge.setBackground(M3.rounded(fill, dp(12)));
+    }
+
+    /** The last card in Get apps: how to add your own apps from the phone. */
+    private View addAppTile() {
+        View t = dashedTile("Add an app", STORE_ADD_TAG, recentTileDp, ROW_STORE);
+        t.setOnClickListener(v -> {
+            List<CharSequence> opts = new ArrayList<>();
+            opts.add("Show the QR code for your phone");
+            opts.add("Refresh the app store");
+            M3Menu.show(this, "Add an app", "On your phone, open the MaterialTV page and go to Your apps. "
+                    + "Add a GitHub repo (owner/name) or an https link to an APK. It shows up here.", opts, which -> {
+                if (which == 0) {
+                    startActivity(new Intent(this, DeadlinesActivity.class).putExtra(DeadlinesActivity.EXTRA_CUSTOMISE, true));
+                } else {
+                    Toast.makeText(this, "Refreshing the app store…", Toast.LENGTH_SHORT).show();
+                    new Thread(() -> {
+                        String msg = Store.refresh(getApplicationContext());
+                        ui.post(() -> Toast.makeText(this, msg, Toast.LENGTH_LONG).show());
+                    }, "m3home-store-refresh").start();
+                }
+            });
+        });
+        return t;
+    }
+
+    /** The detail sheet: what the app is, where it comes from, and Install / Update / Open / Remove. */
+    private void showStoreDetail(final Store.Item item) {
+        final Store.Entry e = item.entry;
+        StringBuilder about = new StringBuilder();
+        if (!e.description.isEmpty()) about.append(e.description).append('\n');
+        if (e.appstore()) about.append("Installs via the Fire TV app store (no direct download from the maker)");
+        else about.append("From ").append(e.source());
+        if (item.latest != null && !item.latest.isEmpty()) about.append(" · ").append(item.latest);
+        if (item.size > 0) about.append(" · ").append(Wallpapers.mb(item.size));
+        String busy = Store.status(e.id), problem = Store.problem(e.id);
+        if (busy != null) about.append("\nInstalling: ").append(busy);
+        else if (problem != null) about.append("\nLast try: ").append(problem);
+
+        final List<CharSequence> labels = new ArrayList<>();
+        final List<Runnable> actions = new ArrayList<>();
+        boolean installed = item.state != Store.GET;
+        if (e.appstore()) {
+            labels.add("Install");
+            actions.add(() -> {
+                if (!Store.openAppstore(this, e.pkg)) Toast.makeText(this, "The Appstore isn't available", Toast.LENGTH_SHORT).show();
+            });
+        } else if (busy == null && item.state != Store.INSTALLED) {
+            labels.add(item.state == Store.UPDATE ? "Update" + (item.latest == null ? "" : " to " + item.latest) : "Install");
+            actions.add(() -> {
+                storeFocus = storeRow.indexOfChild(storeRow.findViewWithTag(STORE_TAG + e.id));
+                Store.install(this, e);
+            });
+        }
+        if (installed) {
+            labels.add("Open");
+            actions.add(() -> {
+                if (!Store.open(this, item.pkg)) Toast.makeText(this, "Couldn't open " + e.name, Toast.LENGTH_SHORT).show();
+            });
+        }
+        if (e.custom) {
+            labels.add("Remove from your apps");
+            actions.add(() -> {
+                Store.removeCustom(this, e.id);
+                dirty = true;
+                load();
+            });
+        }
+        if (labels.isEmpty()) {
+            Toast.makeText(this, e.name + ": " + busy, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        M3Menu.show(this, e.name, about.toString(), labels, which -> actions.get(which).run());
+    }
     /** Scrolls so a focused row shows with its title, or a grid tile sits comfortably on screen. */
     private void keepVisible(final View tile, final int row) {
         ui.post(() -> {
@@ -771,9 +938,11 @@ public class Home extends Activity {
         dirty = false;
         new Thread(() -> {
             final List<Apps.App> list = apps.load();
+            final List<Store.Item> store = order.contains(ROW_STORE) ? Store.items(this) : new ArrayList<>();
             ui.post(() -> {
                 loading = false;
                 installed = list;
+                storeItems = store;
                 apps.seedDefaults(list);
                 render();
                 if (dirty && resumed) load();
@@ -831,11 +1000,22 @@ public class Home extends Activity {
             hiddenButtonText.setText("Hidden apps · " + hiddenCount);
         }
 
+        storeRow.removeAllViews();
+        storeBadges.clear();
+        if (order.contains(ROW_STORE)) {
+            for (Store.Item it : storeItems) storeRow.addView(storeTile(it), rowLp());
+            storeRow.addView(addAppTile(), rowLp());
+        }
+
         View target = null;
         if (keepPkg != null) {
             if (order.contains(keepRow)) target = rowView(keepRow).findViewWithTag(keepPkg);
             for (int r : order) {
                 if (target == null) target = rowView(r).findViewWithTag(keepPkg);
+            }
+            // An app store tile went away (installed): stay in the row, on its neighbour.
+            if (target == null && keepRow == ROW_STORE && order.contains(ROW_STORE) && storeRow.getChildCount() > 0) {
+                target = storeRow.getChildAt(Math.max(0, Math.min(storeFocus, storeRow.getChildCount() - 1)));
             }
         }
         if (target != null) target.requestFocus(); else focusFirstTile();
@@ -844,11 +1024,11 @@ public class Home extends Activity {
     }
 
     private ViewGroup rowView(int row) {
-        return row == ROW_FAVS ? favRow : row == ROW_RECENTS ? recentRow : grid;
+        return row == ROW_FAVS ? favRow : row == ROW_RECENTS ? recentRow : row == ROW_STORE ? storeRow : grid;
     }
 
     private LinearLayout sectionView(int row) {
-        return row == ROW_FAVS ? favSection : row == ROW_RECENTS ? recentSection : allSection;
+        return row == ROW_FAVS ? favSection : row == ROW_RECENTS ? recentSection : row == ROW_STORE ? storeSection : allSection;
     }
 
     private LinearLayout.LayoutParams rowLp() {

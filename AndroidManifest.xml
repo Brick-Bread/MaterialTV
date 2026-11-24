@@ -95,6 +95,8 @@
             android:exported="false" />
 
         <receiver android:name=".Updater$Result" android:exported="false" />
+        <!-- The app store's installs: opens Android's confirm screen and reports the result. -->
+        <receiver android:name=".Store$Result" android:exported="false" />
         <receiver android:name=".Updater$Replaced" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />

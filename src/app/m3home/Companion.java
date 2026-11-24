@@ -54,7 +54,7 @@ final class Companion {
     /** Whole-request limits, so a phone (or anything else) dripping bytes can't hold a thread forever. */
     private static final long REQUEST_MS = 20_000, UPLOAD_REQUEST_MS = 180_000;
 
-    static final String[] ROWS = { "favourites", "recents", "apps" };
+    static final String[] ROWS = { "favourites", "recents", "apps", "store" };
     static final String[] TILE_SIZES = { "compact", "normal", "large" };
     static final String[] THEME_MODES = { "dark", "light" };
     static final String[] TEXT_SIZES = { "small", "normal", "large" };
@@ -535,8 +535,10 @@ final class Companion {
         ss.put("bedEnd", Prefs.bedEnd(c));
         o.put("screensaver", ss);
 
+        o.put("store", new JSONObject().put("custom", Store.customJson(c))); // your own apps in Get apps
+
         JSONObject colors = new JSONObject();
-        M3.Scheme s = Palette.scheme(Palette.seedOf(c, Prefs.accent(c)), Prefs.light(c));
+        M3.Scheme s =Palette.scheme(Palette.seedOf(c, Prefs.accent(c)), Prefs.light(c));
         for (Map.Entry<String, Integer> e : colours(s).entrySet()) colors.put(e.getKey(), hex(e.getValue()));
         o.put("colors", colors);
         return o;
@@ -680,6 +682,17 @@ final class Companion {
                         for (String pkg : want) apps.setHidden(pkg, true);
                         look = true;
                     }
+                }
+            }
+
+            if (in.has("store")) {
+                JSONObject st = in.optJSONObject("store");
+                JSONArray custom = st == null ? null : st.optJSONArray("custom");
+                if (custom == null) skipped.add("store");
+                else {
+                    String err = Store.setCustom(context, custom);
+                    if (err != null) skipped.add("your apps (" + err + ")");
+                    else look = true; // Home reloads its Get apps row
                 }
             }
 

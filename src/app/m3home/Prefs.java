@@ -65,7 +65,7 @@ final class Prefs {
 
     // ---- 1.9.0 customisation (shared contract: every package reads these, only Prefs defines them) ----
     // Home layout
-    static final String HOME_ROWS = "home_rows";       // CSV in display order; a missing id = hidden. ids: favourites,recents,apps
+    static final String HOME_ROWS = "home_rows";       // CSV in display order; a missing id = hidden. ids: favourites,recents,apps,store
     static final String TILE_SIZE = "tile_size";       // compact | normal | large
     // Theme
     static final String ACCENT = "accent";             // purple|blue|teal|green|yellow|orange|red|pink|background
@@ -80,7 +80,23 @@ final class Prefs {
     static final String BG_SEED = "bg_seed";           // int colour picked from the background (for accent=background)
     static final String LOOK_REV = "look_rev";         // bumped on any look/layout change; screens recreate when it moves
 
-    static String homeRows(Context c) { return of(c).getString(HOME_ROWS, "favourites,recents,apps"); }
+    // App store (1.10.0)
+    static final String STORE_CUSTOM = "store_custom"; // JSON array of your own apps: {id, name, repo | url}
+    private static final String STORE_ROW_ADDED = "store_row_added"; // the "Get apps" row was added once
+
+    /** The shown rows. Ids: favourites,recents,apps,store. 1.10.0 adds "store" once to a saved list. */
+    static String homeRows(Context c) {
+        SharedPreferences p = of(c);
+        if (!p.getBoolean(STORE_ROW_ADDED, false)) {
+            SharedPreferences.Editor e = p.edit().putBoolean(STORE_ROW_ADDED, true);
+            String saved = p.getString(HOME_ROWS, null);
+            if (saved != null && !saved.trim().isEmpty() && !("," + saved + ",").contains(",store,")) {
+                e.putString(HOME_ROWS, saved + ",store");
+            }
+            e.commit();
+        }
+        return p.getString(HOME_ROWS, "favourites,recents,apps,store");
+    }
     static String tileSize(Context c) { return of(c).getString(TILE_SIZE, "normal"); }
     static String accent(Context c) { return of(c).getString(ACCENT, "purple"); }
     static boolean light(Context c) { return "light".equals(of(c).getString(THEME_MODE, "dark")); }

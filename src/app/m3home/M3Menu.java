@@ -22,6 +22,11 @@ final class M3Menu {
     interface Pick { void on(int which); }
 
     static void show(Activity a, CharSequence title, List<CharSequence> items, final Pick pick) {
+        show(a, title, null, items, pick);
+    }
+
+    /** With a few lines of explanation under the title (the app store's details). */
+    static void show(Activity a, CharSequence title, CharSequence subtitle, List<CharSequence> items, final Pick pick) {
         if (items.isEmpty()) return;
         final Dialog d = new Dialog(a);
         d.requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -38,6 +43,16 @@ final class M3Menu {
         t.setTypeface(M3.REGULAR);
         t.setPadding(M3.dp(a, 8), 0, M3.dp(a, 8), M3.dp(a, 14));
         box.addView(t);
+        if (subtitle != null) {
+            t.setPadding(M3.dp(a, 8), 0, M3.dp(a, 8), M3.dp(a, 6));
+            TextView s = new TextView(a);
+            s.setText(subtitle);
+            s.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+            s.setTextColor(M3.ON_SURFACE_VAR);
+            s.setTypeface(M3.REGULAR);
+            s.setPadding(M3.dp(a, 8), 0, M3.dp(a, 8), M3.dp(a, 14));
+            box.addView(s);
+        }
 
         LinearLayout rows = new LinearLayout(a);
         rows.setOrientation(LinearLayout.VERTICAL);
