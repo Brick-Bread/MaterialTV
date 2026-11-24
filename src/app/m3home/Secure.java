@@ -34,6 +34,23 @@ final class Secure {
         } catch (SecurityException ignored) { }
     }
 
+    /**
+     * "Stay awake while plugged in" keeps the TV from ever going idle, so the screensaver never
+     * starts. Screen-mirroring tools (scrcpy --stay-awake) switch it on and can leave it on.
+     */
+    static boolean stayAwakeOn(Context c) {
+        return Settings.Global.getInt(c.getContentResolver(), "stay_on_while_plugged_in", 0) != 0;
+    }
+
+    static boolean fixStayAwake(Context c) {
+        if (!canWrite(c)) return false;
+        try {
+            return Settings.Global.putInt(c.getContentResolver(), "stay_on_while_plugged_in", 0);
+        } catch (SecurityException e) {
+            return false;
+        }
+    }
+
     static boolean isScreensaver(Context c) {
         String s = Settings.Secure.getString(c.getContentResolver(), "screensaver_components");
         return s != null && s.contains(DREAM);

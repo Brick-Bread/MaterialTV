@@ -120,6 +120,12 @@ public class SettingsActivity extends Activity {
                 + "Your TV's own picture settings are separate.");
 
         header("Screensaver");
+        if (Secure.stayAwakeOn(this)) {
+            link("Screensaver can't start", "\"Stay awake\" is on, often left by screen mirroring. Select to fix",
+                    () -> Toast.makeText(this, Secure.fixStayAwake(this)
+                            ? "Fixed. The screensaver can start again"
+                            : "Couldn't change it. Run install.sh once to allow this", Toast.LENGTH_LONG).show());
+        }
         choice("Style", MODE_NAMES,
                 () -> indexOf(MODES, Prefs.screensaverMode(this)),
                 i -> Prefs.of(this).edit().putString(Prefs.SS_MODE, MODES[i]).apply());
