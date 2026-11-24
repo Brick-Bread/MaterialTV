@@ -979,7 +979,7 @@ public class Home extends Activity {
         final List<CharSequence> labels = new ArrayList<>();
         final List<Runnable> actions = new ArrayList<>();
         boolean installed = item.state != Store.GET;
-        if (e.appstore()) {
+        if (e.appstore() && !installed) {
             labels.add("Install");
             actions.add(() -> {
                 if (!Store.openAppstore(this, e.pkg)) Toast.makeText(this, "The Appstore isn't available", Toast.LENGTH_SHORT).show();

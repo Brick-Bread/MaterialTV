@@ -367,7 +367,7 @@ final class Store {
             if (installed == null) state = GET;
             else if (!e.appstore() && latest != null && newer(latest, installed)) state = UPDATE;
             else if (e.custom) state = INSTALLED;
-            else continue; // you have it and it's up to date: nothing to offer
+            else state = INSTALLED; // kept on the row so you can open or uninstall it from here
             Bitmap icon = icon(c, e.id);
             int tint = icon != null ? M3.containerFor(new BitmapDrawable(c.getResources(), icon)) : 0;
             if (icon == null || tint == M3.SURFACE_HIGH) {
