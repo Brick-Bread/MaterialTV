@@ -13,6 +13,7 @@
   <a href="https://github.com/Brick-Bread/MaterialTV/releases/latest"><img src="https://img.shields.io/github/v/release/Brick-Bread/MaterialTV?label=release&color=D0BCFF&labelColor=381E72" alt="Latest release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-D0BCFF?labelColor=381E72" alt="License: GPL-3.0"></a>
   <img src="https://img.shields.io/badge/Fire%20OS-7%2B-D0BCFF?labelColor=381E72" alt="Fire OS 7+">
+  <img src="https://img.shields.io/badge/Downloader%20code-4403805-D0BCFF?labelColor=381E72" alt="Downloader code 4403805">
   <a href="https://github.com/Brick-Bread/MaterialTV/releases"><img src="https://img.shields.io/github/downloads/Brick-Bread/MaterialTV/total?color=D0BCFF&labelColor=381E72" alt="Downloads"></a>
 </p>
 
@@ -84,12 +85,12 @@ Most people install MaterialTV with the free **Downloader** app on the Fire TV.
 1. On the Fire TV, open **Settings › My Fire TV › Developer options** and turn on **ADB debugging** (setup needs it, see the [FAQ](#faq) for why). Turn on **Apps from Unknown Sources**, or on newer Fire OS, **Install unknown apps** for Downloader.
    > Don't see Developer options? Open **Settings › My Fire TV › About**, select your device name seven times, then go back.
 2. Install **Downloader** (by AFTVnews) from the Amazon Appstore.
-3. In Downloader, enter this link and press **Go**. It always points to the newest release:
+3. In Downloader, type the code **`4403805`** and press **Go**.
+   Or enter this link instead. It always points to the newest release:
    ```
    https://github.com/Brick-Bread/MaterialTV/releases/latest/download/m3home.apk
    ```
    Or type `brick-bread.github.io/MaterialTV` and select **Download APK** there.
-   A short Downloader code is **coming soon**; it will be listed on the [website](https://brick-bread.github.io/MaterialTV/).
 4. Choose **Install**, then **Open**. The setup wizard starts. Follow [Setup](#setup) below.
 5. Press **Home**. That's it: Home now opens MaterialTV, and holding Home opens its settings.
 
