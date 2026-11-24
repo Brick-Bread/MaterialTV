@@ -73,7 +73,7 @@
   a { color: var(--primary); text-underline-offset: 3px; }
   a:hover { color: var(--on-primary-container); }
   :focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; border-radius: 8px; }
-  code { font-family: var(--mono); font-size: .92em; background: var(--surface-3); padding: .1em .45em; border-radius: 8px; word-break: break-all; }
+  code { font-family: var(--mono); font-size: .92em; background: var(--surface-3); padding: .1em .45em; border-radius: 8px; overflow-wrap: anywhere; }
   strong { color: var(--on-surface); }
 
   .skip { position: absolute; left: -9999px; top: 8px; background: var(--primary); color: var(--on-primary); padding: 10px 18px; border-radius: 999px; z-index: 10; }
@@ -85,7 +85,7 @@
 
   /* Top bar */
   header.top { position: sticky; top: 0; z-index: 5; background: rgba(20,18,24,.78); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid rgba(73,69,79,.5); }
-  header.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 64px; }
+  header.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 64px; }
   .brand { display: flex; align-items: center; gap: 12px; color: var(--on-surface); text-decoration: none; font-weight: 600; font-size: 18px; }
   .brand-mark { width: 36px; height: 36px; border-radius: 12px; background: var(--primary); display: grid; place-items: center; flex: none; }
 
@@ -151,9 +151,12 @@
 
   /* Steps */
   ol.steps { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; counter-reset: step; }
-  ol.steps > li { counter-increment: step; display: grid; grid-template-columns: 40px 1fr; gap: 14px; align-items: start; background: var(--surface-1); border-radius: 20px; padding: 16px; border: 1px solid rgba(73,69,79,.45); color: var(--on-surface-variant); }
-  ol.steps > li > * { min-width: 0; }
-  ol.steps > li::before { content: counter(step); width: 40px; height: 40px; border-radius: 14px; background: var(--primary-container); color: var(--on-primary-container); display: grid; place-items: center; font-weight: 700; font-size: 18px; }
+  /* Number badge is absolutely positioned so a step can hold several paragraphs and command blocks,
+     all stacked in the text column (a 2-column grid pushed extra children into the 40px badge column). */
+  ol.steps > li { --badge: 40px; --pad: 16px; counter-increment: step; position: relative; min-width: 0; min-height: calc(var(--badge) + 2 * var(--pad)); background: var(--surface-1); border-radius: 20px; padding: var(--pad) var(--pad) var(--pad) calc(2 * var(--pad) + var(--badge) - 2px); border: 1px solid rgba(73,69,79,.45); color: var(--on-surface-variant); }
+  ol.steps > li::before { content: counter(step); position: absolute; left: var(--pad); top: var(--pad); width: var(--badge); height: var(--badge); border-radius: 14px; background: var(--primary-container); color: var(--on-primary-container); display: grid; place-items: center; font-weight: 700; font-size: 18px; }
+  ol.steps > li > p:first-child { padding-top: 6px; }
+  @media (max-width: 599px) { .card ol.steps > li { --badge: 32px; --pad: 12px; } .card ol.steps > li > p:first-child { padding-top: 2px; } }  /* centre the first line on the badge */
   ol.steps p { margin: 0; }
   ol.steps p + p, ol.steps p + .cmd, ol.steps .cmd + p { margin-top: 10px; }
   .path { color: var(--on-surface); font-weight: 600; }
@@ -167,14 +170,15 @@
   /* Command blocks */
   .cmd { background: #0F0D13; border: 1px solid var(--outline-variant); border-radius: 18px; overflow: hidden; }
   .cmd-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 6px 6px 16px; background: var(--surface-1); border-bottom: 1px solid var(--outline-variant); }
-  .cmd-bar span { font-size: 13px; font-weight: 500; color: var(--on-surface-variant); }
-  .cmd pre { margin: 0; padding: 14px 16px; font: 500 14.5px/1.55 var(--mono); color: var(--on-surface); white-space: pre-wrap; word-break: break-all; overflow-wrap: anywhere; font-variant-ligatures: none; }
+  .cmd-bar span { font-size: 13px; font-weight: 500; color: var(--on-surface-variant); min-width: 0; }
+  .cmd-bar .copy span { color: inherit; }
+  .cmd pre { margin: 0; padding: 14px 16px; font: 500 14.5px/1.55 var(--mono); color: var(--on-surface); white-space: pre; overflow-x: auto; scrollbar-width: thin; scrollbar-color: var(--outline-variant) transparent; font-variant-ligatures: none; }
+  /* Commands scroll sideways instead of wrapping: a wrap could split flags like "--tv" and make the command misleading. */
   .cmd .copy { min-height: 40px; padding: 8px 16px; font-size: 14px; }
 
   .check { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 10px; }
-  .check li { display: grid; grid-template-columns: 22px 1fr; gap: 12px; color: var(--on-surface-variant); }
-  .check li > * { min-width: 0; }
-  .check li::before { content: ""; width: 22px; height: 22px; margin-top: 2px; border-radius: 50%; background: var(--primary) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 12.5l4 4 8-9' fill='none' stroke='%23381E72' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/16px no-repeat; }
+  .check li { position: relative; padding-left: 34px; color: var(--on-surface-variant); }
+  .check li::before { content: ""; position: absolute; left: 0; top: .2em; width: 22px; height: 22px; border-radius: 50%; background: var(--primary) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 12.5l4 4 8-9' fill='none' stroke='%23381E72' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/16px no-repeat; }
   .undo-card { background: linear-gradient(160deg, var(--primary-container), #3A2A63); border: 0; }
   .undo-card h3, .undo-card p, .undo-card .check li, .undo-card strong { color: var(--on-primary-container); }
   .undo-card .path { color: #fff; }
