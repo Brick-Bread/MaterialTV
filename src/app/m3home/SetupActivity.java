@@ -510,16 +510,16 @@ public class SetupActivity extends Activity {
                     "Tick “Always allow from this computer” and press OK.", M3.ON_PRIMARY_CONT, true);
         } else if (connecting) {
             adbButton.setText("Connecting…");
-            statusCard(0xCC1D1B20, "Connecting to your TV…", null, M3.ON_SURFACE, true);
+            statusCard(M3.alpha(M3.SURFACE_LOW, 0xCC), "Connecting to your TV…", null, M3.ON_SURFACE, true);
         } else if (adbError != null) {
             adbButton.setText("Try on this TV");
-            statusCard(0xCC1D1B20, adbError, null, M3.ERROR, false);
+            statusCard(M3.alpha(M3.SURFACE_LOW, 0xCC), adbError, null, M3.ERROR, false);
         } else if (adbNote != null) {
             adbButton.setText("Try on this TV");
-            statusCard(0xCC1D1B20, adbNote, null, M3.ON_SURFACE_VAR, false);
+            statusCard(M3.alpha(M3.SURFACE_LOW, 0xCC), adbNote, null, M3.ON_SURFACE_VAR, false);
         } else {
             adbButton.setText("Try on this TV");
-            statusCard(0xCC1D1B20, "Waiting for your phone or computer…", null, M3.ON_SURFACE_VAR, true);
+            statusCard(M3.alpha(M3.SURFACE_LOW, 0xCC), "Waiting for your phone or computer…", null, M3.ON_SURFACE_VAR, true);
         }
     }
 
@@ -688,7 +688,7 @@ public class SetupActivity extends Activity {
         // The log fills the right column; it's focusable so the remote can scroll it.
         runLog = right;
         runScroll = (ScrollView) right.getParent();
-        runScroll.setBackground(M3.rounded(0xCC1D1B20, dp(24)));
+        runScroll.setBackground(M3.rounded(M3.alpha(M3.SURFACE_LOW, 0xCC), dp(24)));
         runScroll.setPadding(dp(24), dp(10), dp(24), dp(18));
         runScroll.setClipToPadding(true);
         runScroll.setFocusable(true);
@@ -887,7 +887,7 @@ public class SetupActivity extends Activity {
     private LinearLayout card() {
         LinearLayout c = new LinearLayout(this);
         c.setOrientation(LinearLayout.VERTICAL);
-        c.setBackground(M3.rounded(0xCC1D1B20, dp(24)));
+        c.setBackground(M3.rounded(M3.alpha(M3.SURFACE_LOW, 0xCC), dp(24)));
         c.setPadding(dp(24), dp(20), dp(24), dp(20));
         return c;
     }

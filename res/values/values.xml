@@ -4,16 +4,22 @@
     <string name="guard_name">MaterialTV: Home button</string>
     <string name="guard_desc">Opens MaterialTV when you press Home, opens MaterialTV settings when you hold Home, and draws the brightness and blue light filter. It only watches Amazon\'s launcher and settings windows and reads no screen content.</string>
 
-    <!-- Material 3 dark, baseline purple -->
+    <!-- Material 3 dark, baseline purple: the window colours before M3.init() applies the chosen theme.
+         The screensaver and dialogs keep these; Home and Settings draw their own backgrounds. -->
     <color name="m3_background">#FF141218</color>
+    <color name="m3_surface_high">#FF2B2930</color>
+    <color name="m3_primary">#FFD0BCFF</color>
+    <color name="m3_primary_ripple">#40D0BCFF</color>
+    <color name="m3_on_surface">#FFE6E0E9</color>
+    <color name="m3_on_surface_var">#FFCAC4D0</color>
 
     <style name="M3Home" parent="android:Theme.Material.NoActionBar.Fullscreen">
         <item name="android:windowBackground">@color/m3_background</item>
-        <item name="android:colorBackground">#FF141218</item>
-        <item name="android:colorAccent">#FFD0BCFF</item>
-        <item name="android:colorPrimary">#FF141218</item>
-        <item name="android:colorPrimaryDark">#FF141218</item>
-        <item name="android:textColorPrimary">#FFE6E0E9</item>
+        <item name="android:colorBackground">@color/m3_background</item>
+        <item name="android:colorAccent">@color/m3_primary</item>
+        <item name="android:colorPrimary">@color/m3_background</item>
+        <item name="android:colorPrimaryDark">@color/m3_background</item>
+        <item name="android:textColorPrimary">@color/m3_on_surface</item>
         <item name="android:windowAnimationStyle">@android:style/Animation.Activity</item>
     </style>
 
@@ -22,17 +28,17 @@
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowBackground">@color/m3_scrim</item>
         <item name="android:windowAnimationStyle">@null</item>
-        <item name="android:colorAccent">#FFD0BCFF</item>
-        <item name="android:textColorPrimary">#FFE6E0E9</item>
+        <item name="android:colorAccent">@color/m3_primary</item>
+        <item name="android:textColorPrimary">@color/m3_on_surface</item>
     </style>
     <color name="m3_scrim">#8C0B0A0F</color>
 
     <style name="M3Dialog" parent="android:Theme.Material.Dialog.Alert">
-        <item name="android:colorBackground">#FF2B2930</item>
-        <item name="android:colorAccent">#FFD0BCFF</item>
-        <item name="android:colorControlHighlight">#40D0BCFF</item>
-        <item name="android:textColorPrimary">#FFE6E0E9</item>
-        <item name="android:textColorSecondary">#FFCAC4D0</item>
-        <item name="android:textColorAlertDialogListItem">#FFE6E0E9</item>
+        <item name="android:colorBackground">@color/m3_surface_high</item>
+        <item name="android:colorAccent">@color/m3_primary</item>
+        <item name="android:colorControlHighlight">@color/m3_primary_ripple</item>
+        <item name="android:textColorPrimary">@color/m3_on_surface</item>
+        <item name="android:textColorSecondary">@color/m3_on_surface_var</item>
+        <item name="android:textColorAlertDialogListItem">@color/m3_on_surface</item>
     </style>
 </resources>
