@@ -430,6 +430,7 @@ build.sh, install.sh
 - **Weather** by [Open-Meteo](https://open-meteo.com/).
 - **Screensaver wallpapers:** pictures from [Wikimedia Commons](https://commons.wikimedia.org/), each under its own licence; see the CREDITS file in the [`wallpapers-v1`](https://github.com/Brick-Bread/MaterialTV/releases/tag/wallpapers-v1) release.
 - **SmartTube** and **Tailscale** are third-party apps. They are not part of MaterialTV; setup only downloads them from their official sources if you choose those steps.
+- **App store icons** (`docs/store-icons/`, `assets/store-icons/`): each app's own icon, taken from its repository or its Google Play listing. They are trademarks of their owners and are used only to identify the apps; MaterialTV is not affiliated with or endorsed by them.
 
 ---
 
