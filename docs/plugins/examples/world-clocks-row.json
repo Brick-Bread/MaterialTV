@@ -1,0 +1,18 @@
+{
+  "items": [
+    { "title": "London", "subtitle": "GMT / BST",
+      "action": { "type": "url", "url": "https://www.timeanddate.com/worldclock/uk/london" } },
+    { "title": "New York", "subtitle": "UTC −5 / −4",
+      "action": { "type": "url", "url": "https://www.timeanddate.com/worldclock/usa/new-york" } },
+    { "title": "Los Angeles", "subtitle": "UTC −8 / −7",
+      "action": { "type": "url", "url": "https://www.timeanddate.com/worldclock/usa/los-angeles" } },
+    { "title": "Berlin", "subtitle": "UTC +1 / +2",
+      "action": { "type": "url", "url": "https://www.timeanddate.com/worldclock/germany/berlin" } },
+    { "title": "Dubai", "subtitle": "UTC +4",
+      "action": { "type": "url", "url": "https://www.timeanddate.com/worldclock/united-arab-emirates/dubai" } },
+    { "title": "Tokyo", "subtitle": "UTC +9",
+      "action": { "type": "url", "url": "https://www.timeanddate.com/worldclock/japan/tokyo" } },
+    { "title": "Sydney", "subtitle": "UTC +10 / +11",
+      "action": { "type": "url", "url": "https://www.timeanddate.com/worldclock/australia/sydney" } }
+  ]
+}

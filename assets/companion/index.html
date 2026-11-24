@@ -95,6 +95,14 @@ details[open] summary::after{content:"\25B4"}
         <button id="caAdd">Add app</button></div>
     </div>
 
+    <h2>Plugins</h2>
+    <div class="card">
+      <p class="note">Plugins add widgets, rows of tiles, themes and shortcuts to the TV. Paste the https link to a plugin (its .json file). Android plugins are apps on the TV; switch them on here or in Settings.</p>
+      <div id="plugins"></div>
+      <div class="f"><input type="text" id="plUrl" placeholder="https://…/plugin.json" maxlength="500" aria-label="Plugin link" autocapitalize="off" autocorrect="off" spellcheck="false">
+        <button id="plAdd">Add plugin</button></div>
+    </div>
+
     <div class="card"><details id="hiddenBox"><summary><span id="hiddenSum">Hidden apps</span></summary><div id="hidden"></div></details></div>
 
     <h2>Colours</h2>
@@ -253,6 +261,7 @@ function seg(el, options, current, pick) {
 }
 function label(pkg) {
   for (var i = 0; i < C.apps.length; i++) if (C.apps[i].pkg === pkg) return C.apps[i].label;
+  if (C.favLabels && Object.prototype.hasOwnProperty.call(C.favLabels, pkg)) return C.favLabels[pkg];
   return pkg;
 }
 
@@ -280,6 +289,9 @@ function renderCfg() {
       + '<button class="ic" data-fdel="' + i + '" aria-label="Remove">&#10005;</button></div>';
   }).join('') : '<p class="note">No favourites yet. Add one below.</p>';
   var others = C.apps.filter(function (a) { return favs.indexOf(a.pkg) < 0; });
+  Object.keys(C.favLabels || {}).forEach(function (id) { // plugin shortcuts
+    if (favs.indexOf(id) < 0) others.push({ pkg: id, label: C.favLabels[id] });
+  });
   $('favAdd').innerHTML = others.length ? others.map(function (a) {
     return '<option value="' + esc(a.pkg) + '">' + esc(a.label) + '</option>';
   }).join('') : '<option value="">Every app is a favourite</option>';
@@ -297,6 +309,17 @@ function renderCfg() {
     var src = a.repo ? 'github.com/' + a.repo : a.manifest ? 'Web app · ' + a.manifest : a.url;
     return row(a.name, src + (a.pkg ? ' · ' + a.pkg : ''), '<button class="ic" data-cdel="' + i + '" aria-label="Remove ' + esc(a.name) + '">&#10005;</button>');
   }).join('') : '<p class="note">None yet.</p>';
+
+  // Plugins
+  var pls = C.plugins || [];
+  $('plugins').innerHTML = pls.length ? pls.map(function (p, i) {
+    var sub = (p.kind === 'android' ? 'Android app' : (p.author ? 'by ' + p.author : (p.url || ''))) + ' · ' + p.adds;
+    return '<div class="row">' + sw(p.enabled, 'data-plon="' + i + '" aria-label="Use ' + esc(p.name) + '"')
+      + '<div class="t"><b>' + esc(p.name) + '</b><small>' + esc(sub) + '</small></div>'
+      + (p.theme && p.enabled ? '<button data-pltheme="' + i + '">Apply theme</button>' : '')
+      + (p.kind === 'web' ? '<button class="ic" data-pldel="' + i + '" aria-label="Remove ' + esc(p.name) + '">&#10005;</button>' : '')
+      + '</div>';
+  }).join('') : '<p class="note">No plugins yet.</p>';
 
   // Colours
   $('accents').innerHTML = C.accents.map(function (a) {
@@ -403,6 +426,12 @@ document.addEventListener('click', function (ev) {
     var cl = customList();
     cl.splice(+d.cdel, 1);
     saveCfg({ store: { custom: cl } });
+  } else if (d.plon || d.pltheme || d.pldel) {
+    var pl = C.plugins[+(d.plon || d.pltheme || d.pldel)];
+    if (!pl) return;
+    if (d.plon) { var en = {}; en[pl.id] = !pl.enabled; saveCfg({ plugins: { enable: en } }); }
+    else if (d.pltheme) { snack('Applying ' + pl.name + '…'); saveCfg({ plugins: { applyTheme: pl.id } }); }
+    else if (confirm('Remove ' + pl.name + '?')) saveCfg({ plugins: { remove: pl.id } });
   } else if (d.hide) {
     h = C.apps.filter(function (a) { return a.hidden; }).map(function (a) { return a.pkg; });
     var at = h.indexOf(d.hide);
@@ -446,6 +475,14 @@ $('caAdd').addEventListener('click', function () {
   else { snack('Use a GitHub repo (owner/name) or a link starting with https://', true); return; }
   if (customList().length >= 30) { snack('That is the most apps you can add (30)', true); return; }
   saveCfg({ store: { custom: customList().concat([app]) } }).then(function () { $('caName').value = ''; $('caSrc').value = ''; });
+});
+
+$('plAdd').addEventListener('click', function () {
+  var u = $('plUrl').value.trim(), btn = this;
+  if (!/^https:\/\/\S+$/.test(u) || u.length > 500) { snack('Plugin links start with https://', true); return; }
+  btn.disabled = true;
+  snack('Adding the plugin…');
+  saveCfg({ plugins: { add: u } }).then(function () { $('plUrl').value = ''; btn.disabled = false; });
 });
 
 $('favAddBtn').addEventListener('click', function () {

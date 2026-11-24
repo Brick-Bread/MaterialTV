@@ -1,0 +1,59 @@
+{
+  "api": 1,
+  "id": "smart-home",
+  "name": "Smart home",
+  "author": "MaterialTV",
+  "description": "Shortcut tiles for Home Assistant (or any service with https webhooks), plus a few app and web shortcuts. A template: host your own copy and change the links.",
+  "version": "1.0",
+  "icon": "🏠",
+  "actions": [
+    {
+      "id": "lights-on",
+      "title": "Lights on",
+      "icon": "💡",
+      "type": "webhook",
+      "method": "POST",
+      "url": "https://your-home-assistant.example/api/webhook/living-room-lights-on",
+      "content_type": "application/json",
+      "body": { "brightness": 80 }
+    },
+    {
+      "id": "movie-scene",
+      "title": "Movie night",
+      "icon": "🎬",
+      "type": "webhook",
+      "method": "POST",
+      "url": "https://your-home-assistant.example/api/webhook/movie-scene"
+    },
+    {
+      "id": "lights-off",
+      "title": "Lights off",
+      "icon": "🌙",
+      "type": "webhook",
+      "method": "POST",
+      "url": "https://your-home-assistant.example/api/webhook/living-room-lights-off"
+    },
+    {
+      "id": "test-webhook",
+      "title": "Test webhook",
+      "icon": "🧪",
+      "type": "webhook",
+      "method": "GET",
+      "url": "https://httpbin.org/get?from=materialtv"
+    },
+    {
+      "id": "youtube",
+      "title": "YouTube",
+      "icon": "▶",
+      "type": "app",
+      "package": "com.amazon.firetv.youtube"
+    },
+    {
+      "id": "weather-radar",
+      "title": "Rain radar",
+      "icon": "🌧",
+      "type": "url",
+      "url": "https://www.rainviewer.com/map.html"
+    }
+  ]
+}

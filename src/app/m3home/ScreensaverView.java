@@ -435,18 +435,51 @@ final class ScreensaverView extends FrameLayout {
             String ip = Net.tailscaleIp(c);
             widget(R.drawable.ic_tailnet, ip == null ? "Tailscale off" : "Tailscale", ip == null || ip.isEmpty() ? null : Net.show(c, ip));
         }
+        // Plugin widgets (from memory; fetched in the background while the screensaver runs).
+        Plugins.refreshDue(c, null);
+        for (Plugins.Card w : Plugins.widgetCards(c, widgetsAsChips ? 3 : 4)) {
+            if (Plugins.isPicture(w.icon)) {
+                Bitmap pic = Plugins.memoryPicture(w.icon);
+                if (pic == null) { // decode it for the next refresh
+                    final String src = w.icon;
+                    final Context app = c.getApplicationContext();
+                    final int px = dp(48);
+                    new Thread(() -> Plugins.picture(app, src, px), "m3home-plugin-pic").start();
+                }
+                widget(0, pic, null, w.title, w.subtitle);
+            } else {
+                widget(0, null, w.icon, w.title, w.subtitle);
+            }
+        }
     }
 
     /** One widget: a line in the glass card, or a tonal chip under the big clock. */
     private void widget(int icon, String title, String detail) {
+        widget(icon, null, null, title, detail);
+    }
+
+    /** A widget with a built-in icon, a plugin's picture, or a plugin's glyph (an emoji). */
+    private void widget(int icon, Bitmap picture, String glyph, String title, String detail) {
         LinearLayout row = new LinearLayout(getContext());
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        ImageView iv = new ImageView(getContext());
-        iv.setImageResource(icon);
-        iv.setImageTintList(ColorStateList.valueOf(ink.primary));
         int is = dp(widgetsAsChips ? 24 : 22);
-        row.addView(iv, new LinearLayout.LayoutParams(is, is));
+        if (icon != 0 || picture != null) {
+            ImageView iv = new ImageView(getContext());
+            if (picture != null) {
+                iv.setImageBitmap(picture);
+                iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            } else {
+                iv.setImageResource(icon);
+                iv.setImageTintList(ColorStateList.valueOf(ink.primary));
+            }
+            row.addView(iv, new LinearLayout.LayoutParams(is, is));
+        } else {
+            TextView g = text(widgetsAsChips ? 19 : 18, ink.primary, M3.MEDIUM);
+            g.setText(glyph == null ? "•" : glyph);
+            g.setGravity(Gravity.CENTER);
+            row.addView(g, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, is));
+        }
         TextView t = text(widgetsAsChips ? 20 : 19, ink.onSurface, M3.REGULAR);
         t.setText(title);
         t.setSingleLine(true);

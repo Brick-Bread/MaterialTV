@@ -12,15 +12,26 @@ import android.content.Context;
 final class Palette {
     private Palette() {}
 
-    static final String[] ACCENTS = { "purple", "blue", "teal", "green", "yellow", "orange", "red", "pink", "background" };
-    static final String[] ACCENT_NAMES = { "Purple", "Blue", "Teal", "Green", "Yellow", "Orange", "Red", "Pink", "From background" };
+    static final String[] ACCENTS = { "purple", "blue", "teal", "green", "yellow", "orange", "red", "pink", "background", "custom" };
+    static final String[] ACCENT_NAMES = { "Purple", "Blue", "Teal", "Green", "Yellow", "Orange", "Red", "Pink", "From background", "Custom" };
     private static final int[] SEEDS = {
             0xFF6750A4, 0xFF0061A4, 0xFF006A6A, 0xFF386A20, 0xFF6D5E0F, 0xFF8B5000, 0xFFB3261E, 0xFF984061,
     };
     static final int PURPLE = 0xFF6750A4;
 
-    /** The seed colour for an accent id ("background" = the colour picked from the Home background). */
+    /**
+     * The seed colour for an accent id ("background" = the colour picked from the Home background,
+     * "custom" = any colour, set by a theme plugin).
+     */
     static int seedOf(Context c, String accent) {
+        if ("custom".equals(accent)) {
+            if (c == null) return PURPLE;
+            try {
+                return 0xFF000000 | Prefs.of(c).getInt(Prefs.ACCENT_SEED, PURPLE);
+            } catch (ClassCastException e) {
+                return PURPLE;
+            }
+        }
         if ("background".equals(accent)) {
             if (c == null) return PURPLE;
             try {

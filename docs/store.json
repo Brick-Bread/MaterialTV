@@ -87,6 +87,9 @@
     { "id": "hello-tv", "name": "Hello TV", "category": "Made for MaterialTV",
       "description": "Sample web app: a clock and a remote-friendly grid. Make your own: brick-bread.github.io/MaterialTV/apps",
       "icon_url": "https://brick-bread.github.io/MaterialTV/apps/sample/icon.png",
-      "source": { "type": "webapp", "manifest": "https://brick-bread.github.io/MaterialTV/apps/sample/manifest.json" } }
+      "source": { "type": "webapp", "manifest": "https://brick-bread.github.io/MaterialTV/apps/sample/manifest.json" } },
+    { "id": "world-clocks", "name": "World clocks", "type": "plugin", "category": "Plugins",
+      "description": "Plugin: a world-clock widget and row, and a night-blue theme",
+      "manifest": "https://brick-bread.github.io/MaterialTV/plugins/examples/world-clocks.json" }
   ]
 }
