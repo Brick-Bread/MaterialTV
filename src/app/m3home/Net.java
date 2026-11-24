@@ -14,6 +14,16 @@ import java.net.InetAddress;
 final class Net {
     private Net() {}
 
+    /**
+     * How an address is shown on screen. With "Hide IP addresses" on (Settings), only the first two
+     * parts are shown, e.g. 192.168.•.• — handy for screenshots or sharing your screen.
+     */
+    static String show(Context c, String ip) {
+        if (ip == null || ip.isEmpty() || !Prefs.of(c).getBoolean(Prefs.HIDE_IPS, false)) return ip;
+        String[] p = ip.split("\\.");
+        return p.length == 4 ? p[0] + "." + p[1] + ".••.••" : "•••";
+    }
+
     /** The tailnet IPv4 address, "" if a VPN is up without one, or null if no VPN is up. */
     static String tailscaleIp(Context c) {
         ConnectivityManager cm = (ConnectivityManager) c.getSystemService(Context.CONNECTIVITY_SERVICE);

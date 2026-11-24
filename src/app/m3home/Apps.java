@@ -203,7 +203,7 @@ final class Apps {
         if (changed) putList(KEY_HIDDEN, h);
     }
 
-    // ---- recently used (apps opened from M3 Home, newest first) -------------------------
+    // ---- recently used (apps opened from MaterialTV, newest first) -------------------------
 
     List<String> recents() {
         return list(KEY_RECENTS);

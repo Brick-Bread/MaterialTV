@@ -17,10 +17,10 @@ SERVICE=app.m3home/app.m3home.HomeGuard
 "$ADB" connect "$DEVICE" >/dev/null 2>&1 || true
 "$ADB" -s "$DEVICE" install -r build/m3home.apk
 "$ADB" -s "$DEVICE" shell "settings put secure enabled_accessibility_services $SERVICE; settings put secure accessibility_enabled 1; dumpsys deviceidle whitelist +app.m3home >/dev/null"
-# Lets M3 Home switch the screensaver itself and restore its Home-button service after updates.
+# Lets MaterialTV switch the screensaver itself and restore its Home-button service after updates.
 "$ADB" -s "$DEVICE" shell pm grant app.m3home android.permission.WRITE_SECURE_SETTINGS || true
-# Lets the "Now playing" widget read media titles (M3 Home ignores notifications themselves).
-# Lets M3 Home offer updates from GitHub (Android still asks before installing each one).
+# Lets the "Now playing" widget read media titles (MaterialTV ignores notifications themselves).
+# Lets MaterialTV offer updates from GitHub (Android still asks before installing each one).
 "$ADB" -s "$DEVICE" shell appops set app.m3home REQUEST_INSTALL_PACKAGES allow || true
 "$ADB" -s "$DEVICE" shell cmd notification disallow_listener app.m3home/app.m3home.NowPlaying >/dev/null 2>&1 || true
 "$ADB" -s "$DEVICE" shell cmd notification allow_listener app.m3home/app.m3home.MediaListener || true

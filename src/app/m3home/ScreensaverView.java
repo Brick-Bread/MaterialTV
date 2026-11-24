@@ -430,7 +430,7 @@ final class ScreensaverView extends FrameLayout {
         }
         if (Prefs.on(c, Prefs.W_TAILSCALE)) {
             String ip = Net.tailscaleIp(c);
-            widget(R.drawable.ic_tailnet, ip == null ? "Tailscale off" : "Tailscale", ip == null || ip.isEmpty() ? null : ip);
+            widget(R.drawable.ic_tailnet, ip == null ? "Tailscale off" : "Tailscale", ip == null || ip.isEmpty() ? null : Net.show(c, ip));
         }
     }
 

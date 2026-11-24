@@ -6,7 +6,7 @@ import android.content.pm.PackageManager;
 import android.provider.Settings;
 
 /**
- * System settings M3 Home may change once install.sh has granted WRITE_SECURE_SETTINGS
+ * System settings MaterialTV may change once install.sh has granted WRITE_SECURE_SETTINGS
  * (adb shell pm grant app.m3home android.permission.WRITE_SECURE_SETTINGS).
  * Without the grant every method here is a harmless no-op that reports false.
  */
@@ -56,7 +56,7 @@ final class Secure {
         return s != null && s.contains(DREAM);
     }
 
-    /** Makes M3 Home the Fire TV screensaver, or puts the previous one back. */
+    /** Makes MaterialTV the Fire TV screensaver, or puts the previous one back. */
     static boolean setScreensaver(Context c, boolean on) {
         if (!canWrite(c)) return false;
         ContentResolver cr = c.getContentResolver();

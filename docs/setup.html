@@ -1,0 +1,610 @@
+<!doctype html>
+<!--
+  MaterialTV - Fire TV setup page (GitHub Pages, served from /docs).
+
+  The TV's setup wizard shows a QR code that opens:
+    setup.html?tv=<TV IPv4>&c=<4-8 char pairing code>[&undo=1]
+  Parameters are validated strictly and only ever written (as text) into the
+  links and commands on this page. No analytics, no network requests.
+
+  Testing: add &platform=android|ios|windows|mac|linux to override the
+  user-agent platform detection.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Set up your Fire TV · MaterialTV</title>
+<meta name="description" content="Finish setting up MaterialTV on your Fire TV from an Android phone or a computer, or undo the setup.">
+<meta name="theme-color" content="#141218">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<link rel="canonical" href="https://brick-bread.github.io/MaterialTV/setup.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%23D0BCFF'/%3E%3Cpath d='M16 46V20l16 14 16-14v26' fill='none' stroke='%23381E72' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --bg: #141218;
+    --surface-1: #1D1B20;
+    --surface-2: #211F26;
+    --surface-3: #2B2930;
+    --surface-4: #36343B;
+    --primary: #D0BCFF;
+    --on-primary: #381E72;
+    --primary-container: #4F378B;
+    --on-primary-container: #EADDFF;
+    --secondary-container: #4A4458;
+    --on-secondary-container: #E8DEF8;
+    --tertiary: #EFB8C8;
+    --on-surface: #E6E0E9;
+    --on-surface-variant: #CAC4D0;
+    --outline: #938F99;
+    --outline-variant: #49454F;
+    --radius-lg: 28px;
+    --radius-md: 24px;
+    --radius-sm: 16px;
+    --font: "Google Sans Flex", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace;
+    color-scheme: dark;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { transition: none !important; animation: none !important; } }
+  body {
+    margin: 0;
+    font-family: var(--font);
+    font-size: 17px;
+    line-height: 1.6;
+    color: var(--on-surface);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: "";
+    position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background:
+      radial-gradient(60vmax 45vmax at 85% -10%, rgba(208,188,255,.16), transparent 60%),
+      radial-gradient(50vmax 40vmax at -10% 30%, rgba(79,55,139,.22), transparent 65%),
+      radial-gradient(40vmax 30vmax at 70% 110%, rgba(239,184,200,.08), transparent 60%);
+  }
+  a { color: var(--primary); text-underline-offset: 3px; }
+  a:hover { color: var(--on-primary-container); }
+  :focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; border-radius: 8px; }
+  code { font-family: var(--mono); font-size: .92em; background: var(--surface-3); padding: .1em .45em; border-radius: 8px; word-break: break-all; }
+  strong { color: var(--on-surface); }
+
+  .skip { position: absolute; left: -9999px; top: 8px; background: var(--primary); color: var(--on-primary); padding: 10px 18px; border-radius: 999px; z-index: 10; }
+  .skip:focus { left: 16px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+  .wrap { width: 100%; max-width: 960px; margin: 0 auto; padding: 0 16px; }
+  @media (min-width: 720px) { .wrap { padding: 0 32px; } }
+
+  /* Top bar */
+  header.top { position: sticky; top: 0; z-index: 5; background: rgba(20,18,24,.78); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid rgba(73,69,79,.5); }
+  header.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 64px; }
+  .brand { display: flex; align-items: center; gap: 12px; color: var(--on-surface); text-decoration: none; font-weight: 600; font-size: 18px; }
+  .brand-mark { width: 36px; height: 36px; border-radius: 12px; background: var(--primary); display: grid; place-items: center; flex: none; }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; padding: 12px 26px; border-radius: 999px; font: 600 16px/1.2 var(--font); text-decoration: none; border: 0; cursor: pointer; text-align: center; transition: transform .15s ease, background-color .15s ease, box-shadow .15s ease; }
+  .btn:active { transform: scale(.97); }
+  .btn svg { width: 20px; height: 20px; flex: none; }
+  .btn-filled { background: var(--primary); color: var(--on-primary); box-shadow: 0 6px 28px rgba(208,188,255,.25); }
+  .btn-filled:hover { background: #DCCBFF; color: var(--on-primary); box-shadow: 0 8px 36px rgba(208,188,255,.38); }
+  .btn-tonal { background: var(--secondary-container); color: var(--on-secondary-container); }
+  .btn-tonal:hover { background: #564F66; color: var(--on-secondary-container); }
+  .btn-outline { background: transparent; color: var(--primary); border: 1px solid var(--outline); }
+  .btn-outline:hover { background: rgba(208,188,255,.08); color: var(--primary); }
+  .btn-sm { min-height: 40px; padding: 8px 18px; font-size: 14px; }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; margin: 20px 0 0; }
+
+  /* Hero */
+  .hero { padding: 48px 0 24px; }
+  @media (min-width: 720px) { .hero { padding: 80px 0 32px; } }
+  .eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; background: var(--surface-3); color: var(--on-surface-variant); font-size: 14px; font-weight: 500; }
+  .eyebrow .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); }
+  h1 { font-size: clamp(38px, 8vw, 68px); line-height: 1.04; letter-spacing: -0.03em; font-weight: 700; margin: 18px 0 14px; }
+  h1 .accent { color: var(--primary); }
+  .lede { font-size: clamp(18px, 2.4vw, 21px); color: var(--on-surface-variant); max-width: 36em; margin: 0 0 28px; }
+
+  .pair { display: grid; gap: 12px; grid-template-columns: 1fr; }
+  @media (min-width: 600px) { .pair { grid-template-columns: 1fr 1fr; } }
+  .pair .card { background: var(--surface-3); }
+  .pair-label { font-size: 13px; font-weight: 500; color: var(--on-surface-variant); text-transform: uppercase; letter-spacing: .08em; }
+  .pair-value { display: block; font-size: clamp(28px, 7vw, 44px); font-weight: 700; color: var(--primary); line-height: 1.15; letter-spacing: .02em; overflow-wrap: anywhere; }
+  .pair-value.code { letter-spacing: .14em; font-family: var(--mono); font-weight: 600; }
+  .pair .card p { margin-top: 6px; }
+  .ip-form { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+  .ip-form label { display: block; width: 100%; font-size: 15px; color: var(--on-surface-variant); }
+  .ip-form input { flex: 1 1 180px; min-width: 0; min-height: 48px; padding: 10px 16px; border-radius: 14px; border: 1px solid var(--outline); background: var(--surface-1); color: var(--on-surface); font: 500 17px/1.2 var(--mono); }
+  .ip-form input:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; border-color: var(--primary); }
+  .ip-form input[aria-invalid="true"] { border-color: #F2B8B5; }
+  .ip-msg { width: 100%; margin: 0; font-size: 14px; color: var(--on-surface-variant); min-height: 1.4em; }
+  .ip-msg.err { color: #F2B8B5; }
+
+  /* Sections */
+  section { padding: 32px 0; scroll-margin-top: 72px; }
+  @media (min-width: 720px) { section { padding: 48px 0; } }
+  h2 { font-size: clamp(28px, 5vw, 40px); line-height: 1.12; letter-spacing: -0.02em; font-weight: 700; margin: 0 0 10px; }
+  h3 { font-size: 20px; line-height: 1.3; font-weight: 600; margin: 0 0 8px; }
+  .section-intro { color: var(--on-surface-variant); max-width: 40em; margin: 0 0 24px; font-size: 18px; }
+
+  .card { background: var(--surface-2); border-radius: var(--radius-md); padding: 20px; border: 1px solid rgba(73,69,79,.45); min-width: 0; }
+  @media (min-width: 720px) { .card { padding: 28px; border-radius: var(--radius-lg); } }
+  .card p { margin: 0; color: var(--on-surface-variant); }
+  .card p + p { margin-top: 10px; }
+  .stack { display: grid; gap: 16px; }
+  .split { display: grid; gap: 16px; }
+  @media (min-width: 860px) { .split { grid-template-columns: 1fr 1fr; } }
+
+  .panel { display: grid; gap: 16px; }
+  .panel + .panel { margin-top: 40px; }
+  .panel-head { display: flex; align-items: center; gap: 14px; }
+  .panel-head .icon { width: 48px; height: 48px; border-radius: 16px; background: var(--secondary-container); color: var(--on-secondary-container); display: grid; place-items: center; flex: none; }
+  .panel-head .icon svg { width: 26px; height: 26px; }
+  .panel-head h2 { margin: 0; font-size: clamp(24px, 4.4vw, 34px); }
+  .tag { display: inline-block; font-size: 13px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: var(--primary-container); color: var(--on-primary-container); vertical-align: middle; margin-left: 6px; letter-spacing: 0; }
+
+  /* Steps */
+  ol.steps { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; counter-reset: step; }
+  ol.steps > li { counter-increment: step; display: grid; grid-template-columns: 40px 1fr; gap: 14px; align-items: start; background: var(--surface-1); border-radius: 20px; padding: 16px; border: 1px solid rgba(73,69,79,.45); color: var(--on-surface-variant); }
+  ol.steps > li > * { min-width: 0; }
+  ol.steps > li::before { content: counter(step); width: 40px; height: 40px; border-radius: 14px; background: var(--primary-container); color: var(--on-primary-container); display: grid; place-items: center; font-weight: 700; font-size: 18px; }
+  ol.steps p { margin: 0; }
+  ol.steps p + p, ol.steps p + .cmd, ol.steps .cmd + p { margin-top: 10px; }
+  .path { color: var(--on-surface); font-weight: 600; }
+
+  .note { display: flex; gap: 12px; align-items: flex-start; background: rgba(208,188,255,.08); border: 1px solid rgba(208,188,255,.25); border-radius: var(--radius-sm); padding: 14px 18px; color: var(--on-surface-variant); font-size: 15px; }
+  .note svg { width: 20px; height: 20px; color: var(--primary); flex: none; margin-top: 2px; }
+  .note p { margin: 0; }
+  .warn { background: rgba(239,184,200,.08); border-color: rgba(239,184,200,.32); }
+  .warn svg { color: var(--tertiary); }
+
+  /* Command blocks */
+  .cmd { background: #0F0D13; border: 1px solid var(--outline-variant); border-radius: 18px; overflow: hidden; }
+  .cmd-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 6px 6px 16px; background: var(--surface-1); border-bottom: 1px solid var(--outline-variant); }
+  .cmd-bar span { font-size: 13px; font-weight: 500; color: var(--on-surface-variant); }
+  .cmd pre { margin: 0; padding: 14px 16px; font: 500 14.5px/1.55 var(--mono); color: var(--on-surface); white-space: pre-wrap; word-break: break-all; overflow-wrap: anywhere; font-variant-ligatures: none; }
+  .cmd .copy { min-height: 40px; padding: 8px 16px; font-size: 14px; }
+
+  .check { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 10px; }
+  .check li { display: grid; grid-template-columns: 22px 1fr; gap: 12px; color: var(--on-surface-variant); }
+  .check li > * { min-width: 0; }
+  .check li::before { content: ""; width: 22px; height: 22px; margin-top: 2px; border-radius: 50%; background: var(--primary) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 12.5l4 4 8-9' fill='none' stroke='%23381E72' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/16px no-repeat; }
+  .undo-card { background: linear-gradient(160deg, var(--primary-container), #3A2A63); border: 0; }
+  .undo-card h3, .undo-card p, .undo-card .check li, .undo-card strong { color: var(--on-primary-container); }
+  .undo-card .path { color: #fff; }
+  .undo-card .check li::before { background-color: var(--on-primary-container); }
+  .undo-card a { color: #fff; }
+
+  /* Other devices */
+  details.others { background: var(--surface-2); border-radius: var(--radius-md); border: 1px solid rgba(73,69,79,.45); }
+  details.others > summary { cursor: pointer; list-style: none; padding: 20px 24px; font-weight: 600; font-size: 19px; display: flex; justify-content: space-between; align-items: center; gap: 16px; border-radius: var(--radius-md); }
+  details.others > summary::-webkit-details-marker { display: none; }
+  details.others > summary::after { content: ""; width: 32px; height: 32px; flex: none; border-radius: 50%; background: var(--surface-3) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 10l5 5 5-5' fill='none' stroke='%23D0BCFF' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/20px no-repeat; transition: transform .2s ease; }
+  details.others[open] > summary::after { transform: rotate(180deg); }
+  details.others > summary:hover { background: var(--surface-3); }
+  details.others > summary small { display: block; font-weight: 400; font-size: 15px; color: var(--on-surface-variant); }
+  .others-body { padding: 4px 16px 24px; }
+  @media (min-width: 720px) { .others-body { padding: 4px 24px 28px; } }
+  .others-body .card { background: var(--surface-1); }
+
+  /* Setup vs undo wording */
+  body.undo .only-setup { display: none !important; }
+  body:not(.undo) .only-undo { display: none !important; }
+  [hidden] { display: none !important; }
+
+  footer { padding: 40px 0 56px; border-top: 1px solid var(--outline-variant); margin-top: 40px; color: var(--on-surface-variant); font-size: 15px; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 16px 32px; justify-content: space-between; align-items: center; }
+  footer p { margin: 0; }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<!-- Icons (Material Symbols paths, Apache-2.0) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-download" viewBox="0 0 24 24"><path fill="currentColor" d="M12 16l-5-5 1.4-1.45 2.6 2.6V4h2v8.15l2.6-2.6L17 11l-5 5zm-6 4q-.825 0-1.413-.588T4 18v-3h2v3h12v-3h2v3q0 .825-.588 1.413T18 20H6z"/></symbol>
+  <symbol id="i-github" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 00-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02a9.58 9.58 0 015 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0012 2z"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><path fill="currentColor" d="M11 17h2v-6h-2v6zm1-8q.425 0 .713-.288T13 8q0-.425-.288-.713T12 7q-.425 0-.713.288T11 8q0 .425.288.713T12 9zm0 13q-2.075 0-3.9-.788t-3.175-2.137q-1.35-1.35-2.137-3.175T2 12q0-2.075.788-3.9t2.137-3.175q1.35-1.35 3.175-2.137T12 2q2.075 0 3.9.788t3.175 2.137q1.35 1.35 2.138 3.175T22 12q0 2.075-.788 3.9t-2.137 3.175q-1.35 1.35-3.175 2.138T12 22z"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><path fill="currentColor" d="M9 18q-.825 0-1.413-.588T7 16V4q0-.825.588-1.413T9 2h9q.825 0 1.413.588T20 4v12q0 .825-.588 1.413T18 18H9zm0-2h9V4H9v12zm-4 6q-.825 0-1.413-.588T3 20V6h2v14h11v2H5z"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><path fill="currentColor" d="M7 23q-.825 0-1.413-.588T5 21V3q0-.825.588-1.413T7 1h10q.825 0 1.413.588T19 3v18q0 .825-.588 1.413T17 23H7zm0-5v3h10v-3H7zm5 2.5q.425 0 .713-.288T13 19.5q0-.425-.288-.713T12 18.5q-.425 0-.713.288T11 19.5q0 .425.288.713T12 20.5zM7 16h10V6H7v10zM7 4h10V3H7v1z"/></symbol>
+  <symbol id="i-computer" viewBox="0 0 24 24"><path fill="currentColor" d="M1 21v-2h22v2H1zm3-3q-.825 0-1.413-.588T2 16V5q0-.825.588-1.413T4 3h16q.825 0 1.413.588T22 5v11q0 .825-.588 1.413T20 18H4zm0-2h16V5H4v11z"/></symbol>
+  <symbol id="i-terminal" viewBox="0 0 24 24"><path fill="currentColor" d="M4 20q-.825 0-1.413-.588T2 18V6q0-.825.588-1.413T4 4h16q.825 0 1.413.588T22 6v12q0 .825-.588 1.413T20 20H4zm0-2h16V8H4v10zm3.5-1l-1.4-1.4L8.675 13l-2.6-2.6L7.5 9l4 4-4 4zm4.5 0v-2h6v2h-6z"/></symbol>
+  <symbol id="i-open" viewBox="0 0 24 24"><path fill="currentColor" d="M5 21q-.825 0-1.413-.588T3 19V5q0-.825.588-1.413T5 3h7v2H5v14h14v-7h2v7q0 .825-.588 1.413T19 21H5zm4.7-5.3l-1.4-1.4L17.6 5H14V3h7v7h-2V6.4l-9.3 9.3z"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path fill="currentColor" d="M7 19v-2h7.1q1.575 0 2.738-1T18 13.5q0-1.5-1.162-2.5T14.1 10H7.8l2.6 2.6L9 14 4 9l5-5 1.4 1.4L7.8 8h6.3q2.425 0 4.163 1.575T20 13.5q0 2.35-1.737 3.925T14.1 19H7z"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path fill="currentColor" d="M11 17H7q-2.075 0-3.537-1.463T2 12q0-2.075 1.463-3.537T7 7h4v2H7q-1.25 0-2.125.875T4 12q0 1.25.875 2.125T7 15h4v2zm-3-4v-2h8v2H8zm5 4v-2h4q1.25 0 2.125-.875T20 12q0-1.25-.875-2.125T17 9h-4V7h4q2.075 0 3.538 1.463T22 12q0 2.075-1.463 3.538T17 17h-4z"/></symbol>
+</svg>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="./" aria-label="MaterialTV, home page">
+      <span class="brand-mark" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 64 64"><path d="M14 48V18l18 16 18-16v30" fill="none" stroke="#381E72" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+      MaterialTV
+    </a>
+    <a class="btn btn-tonal btn-sm" href="https://github.com/Brick-Bread/MaterialTV">
+      <svg aria-hidden="true"><use href="#i-github"/></svg><span>GitHub</span>
+    </a>
+  </div>
+</header>
+
+<main id="main">
+  <!-- Hero -->
+  <div class="hero">
+    <div class="wrap">
+      <span class="eyebrow"><span class="dot" aria-hidden="true"></span><span class="only-setup">Fire TV setup</span><span class="only-undo">Undo Fire TV setup</span></span>
+      <h1><span class="only-setup">Set up your <span class="accent">Fire&nbsp;TV</span></span><span class="only-undo"><span class="accent">Undo</span> setup</span></h1>
+      <p class="lede only-setup">Amazon doesn't let apps on a Fire&nbsp;TV use that TV's own debugging connection, so MaterialTV's setup runs from another device: an Android phone or a computer on the same Wi-Fi.</p>
+      <p class="lede only-undo">Put your Fire&nbsp;TV back the way it was: switch Amazon's apps back on, restore settings, and remove what setup installed. Undo runs from an Android phone or a computer on the same Wi-Fi.</p>
+
+      <div class="pair">
+        <div class="card">
+          <span class="pair-label" id="tv-label">TV address</span>
+          <span class="pair-value" id="tv-value" aria-labelledby="tv-label">Not set</span>
+          <p id="tv-hint">Scan the QR code on your TV's setup screen to fill this in, or type the address below.</p>
+          <form class="ip-form" id="ip-form" hidden novalidate>
+            <label for="ip-input">TV IP address (on the TV: <span class="path">Settings › My Fire TV › About › Network</span>)</label>
+            <input id="ip-input" name="tv" type="text" inputmode="decimal" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="192.168.1.50" aria-describedby="ip-msg">
+            <button class="btn btn-tonal btn-sm" type="submit">Use this address</button>
+            <p class="ip-msg" id="ip-msg" aria-live="polite"></p>
+          </form>
+        </div>
+        <div class="card" id="code-card" hidden>
+          <span class="pair-label" id="code-label">Pairing code</span>
+          <span class="pair-value code" id="code-value" aria-labelledby="code-label"></span>
+          <p>Make sure the TV shows code <strong id="code-inline"></strong>, so you know you're setting up the right TV.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Platform-specific instructions. JS moves the right panel(s) into #primary
+       and the rest into the "Using a different device?" section. -->
+  <section id="how" aria-label="Instructions for your device">
+    <div class="wrap">
+      <div id="primary">
+
+        <!-- iPhone / iPad -->
+        <div class="panel" data-panel="ios" id="panel-ios">
+          <div class="card warn note" role="note" style="padding:20px 22px">
+            <svg aria-hidden="true"><use href="#i-info"/></svg>
+            <div>
+              <h2 style="font-size:22px;margin:0 0 6px;color:var(--on-surface)">iPhone can't do this — use a computer</h2>
+              <p>iPhone and iPad can't talk to a Fire&nbsp;TV's debugging connection. Use a Windows, Mac or Linux computer (instructions below), or an Android phone, on the same Wi-Fi as the TV.</p>
+              <p style="margin-top:10px">Send this page to your computer:</p>
+              <div class="cta" style="margin-top:10px">
+                <button class="btn btn-tonal btn-sm" type="button" id="copy-page"><svg aria-hidden="true"><use href="#i-link"/></svg><span>Copy link to this page</span></button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Android -->
+        <div class="panel" data-panel="android" id="panel-android">
+          <div class="panel-head">
+            <span class="icon" aria-hidden="true"><svg><use href="#i-phone"/></svg></span>
+            <h2>With an Android phone</h2>
+          </div>
+          <p class="section-intro" style="margin:0">The same MaterialTV app you installed on the TV also works as a setup remote on an Android phone. It connects to the TV over Wi-Fi and does the setup for you.</p>
+          <div class="card">
+            <div class="cta" style="margin-top:0" id="android-cta">
+              <a class="btn btn-filled" id="open-app" href="#"><svg aria-hidden="true"><use href="#i-open"/></svg><span class="only-setup">Open MaterialTV</span><span class="only-undo">Open MaterialTV to undo setup</span></a>
+              <a class="btn btn-outline" id="apk-link" href="https://github.com/Brick-Bread/MaterialTV/releases/latest/download/m3home.apk"><svg aria-hidden="true"><use href="#i-download"/></svg>Download MaterialTV for your phone (APK)</a>
+            </div>
+            <p id="open-app-hint" style="margin-top:12px;font-size:15px">If MaterialTV isn't on your phone yet, <em>Open MaterialTV</em> downloads it instead.</p>
+            <p id="open-app-elsewhere" hidden style="margin-top:12px;font-size:15px">The <em>Open MaterialTV</em> button only works in Chrome on an Android phone. Scan the TV's QR code with the phone to get there.</p>
+          </div>
+          <ol class="steps">
+            <li><p><strong>Install MaterialTV on the phone.</strong> Tap <em>Open MaterialTV</em> or the APK link. If Android asks, allow your browser to install unknown apps, then tap <strong>Install</strong>.</p></li>
+            <li><p><strong>Come back here and tap <em>Open MaterialTV</em></strong> (or scan the TV's QR code again), so the app knows which TV to <span class="only-setup">set up</span><span class="only-undo">restore</span>.</p></li>
+            <li><p>In MaterialTV, check the code matches the TV and tap <strong class="only-setup">Set up</strong><strong class="only-undo">Undo setup</strong>.</p></li>
+            <li><p>On the TV, when it asks <em>"Allow USB debugging?"</em>, tick <em>Always allow</em> and press <strong>OK</strong> on the remote. Then follow the steps on the phone.</p></li>
+          </ol>
+          <div class="note" role="note"><svg aria-hidden="true"><use href="#i-info"/></svg><p>Your phone and the TV must be on the same Wi-Fi network (or both connected to the same Tailscale network).</p></div>
+        </div>
+
+        <!-- Windows -->
+        <div class="panel" data-panel="windows" id="panel-windows">
+          <div class="panel-head">
+            <span class="icon" aria-hidden="true"><svg><use href="#i-computer"/></svg></span>
+            <h2>With a Windows PC</h2>
+          </div>
+          <p class="section-intro" style="margin:0">Open <strong>PowerShell</strong> (press Start, type <em>PowerShell</em>, press Enter), paste this command and press Enter:</p>
+          <div class="cmd">
+            <div class="cmd-bar"><span id="win1-label">PowerShell</span><button class="btn btn-tonal copy" type="button" data-copy-target="cmd-win1" aria-describedby="win1-label"><svg aria-hidden="true"><use href="#i-copy"/></svg><span>Copy</span></button></div>
+            <pre id="cmd-win1" tabindex="0" aria-label="PowerShell command">$env:M3_TV="192.168.1.50"; irm https://raw.githubusercontent.com/Brick-Bread/MaterialTV/main/scripts/setup.ps1 | iex</pre>
+          </div>
+          <div class="card">
+            <h3>Prefer to read it first?</h3>
+            <ol class="steps" style="margin-top:12px">
+              <li><p>Download <a class="dl-ps1" href="https://raw.githubusercontent.com/Brick-Bread/MaterialTV/main/scripts/setup.ps1">setup.ps1</a>. If it opens as text, press <strong>Ctrl+S</strong> and save it as <code>setup.ps1</code> in your Downloads folder. Read it in any text editor.</p></li>
+              <li>
+                <p>In PowerShell, run:</p>
+                <div class="cmd">
+                  <div class="cmd-bar"><span id="win2-label">PowerShell, from your Downloads folder</span><button class="btn btn-tonal copy" type="button" data-copy-target="cmd-win2" aria-describedby="win2-label"><svg aria-hidden="true"><use href="#i-copy"/></svg><span>Copy</span></button></div>
+                  <pre id="cmd-win2" tabindex="0" aria-label="PowerShell command to run the downloaded script">cd $HOME\Downloads
+powershell -ExecutionPolicy Bypass -File setup.ps1 -Tv 192.168.1.50</pre>
+                </div>
+              </li>
+            </ol>
+          </div>
+          <div class="cmd-about" data-about></div>
+        </div>
+
+        <!-- macOS / Linux -->
+        <div class="panel" data-panel="unix" id="panel-unix">
+          <div class="panel-head">
+            <span class="icon" aria-hidden="true"><svg><use href="#i-terminal"/></svg></span>
+            <h2>With a Mac or Linux computer</h2>
+          </div>
+          <p class="section-intro" style="margin:0">Open <strong>Terminal</strong> (on a Mac: press <em>Cmd+Space</em>, type <em>Terminal</em>, press Enter), paste this command and press Enter:</p>
+          <div class="cmd">
+            <div class="cmd-bar"><span id="sh1-label">Terminal</span><button class="btn btn-tonal copy" type="button" data-copy-target="cmd-sh1" aria-describedby="sh1-label"><svg aria-hidden="true"><use href="#i-copy"/></svg><span>Copy</span></button></div>
+            <pre id="cmd-sh1" tabindex="0" aria-label="Terminal command">curl -fsSL https://raw.githubusercontent.com/Brick-Bread/MaterialTV/main/scripts/setup.sh | bash -s -- --tv 192.168.1.50</pre>
+          </div>
+          <div class="card">
+            <h3>Prefer to read it first?</h3>
+            <p style="margin-top:8px">Download <a class="dl-sh" href="https://raw.githubusercontent.com/Brick-Bread/MaterialTV/main/scripts/setup.sh">setup.sh</a>, or fetch it, read it, then run it:</p>
+            <div class="cmd" style="margin-top:12px">
+              <div class="cmd-bar"><span id="sh2-label">Terminal</span><button class="btn btn-tonal copy" type="button" data-copy-target="cmd-sh2" aria-describedby="sh2-label"><svg aria-hidden="true"><use href="#i-copy"/></svg><span>Copy</span></button></div>
+              <pre id="cmd-sh2" tabindex="0" aria-label="Terminal commands to download, read and run the script">curl -fsSLo setup.sh https://raw.githubusercontent.com/Brick-Bread/MaterialTV/main/scripts/setup.sh
+less setup.sh
+bash setup.sh --tv 192.168.1.50</pre>
+            </div>
+          </div>
+          <div class="cmd-about" data-about></div>
+        </div>
+
+      </div>
+
+      <!-- Shared "what the script does" note; JS copies it under each computer panel. -->
+      <template id="about-tpl">
+        <div class="split">
+          <div class="card">
+            <h3>What the script does</h3>
+            <ul class="check">
+              <li><span>Gets Google's ADB tools (platform-tools) into a temporary folder if your computer doesn't have them.</span></li>
+              <li><span>Connects to your TV over Wi-Fi. On the TV, tick <em>Always allow</em> and press <strong>OK</strong> on <em>"Allow USB debugging?"</em>.</span></li>
+              <li><span class="only-setup">Lets you pick the setup steps, then applies them.</span><span class="only-undo">Reverses the changes setup made, using the record kept on the TV.</span></li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Where it downloads from</h3>
+            <p>Only <code>dl.google.com</code>, <code>github.com</code>, <code>raw.githubusercontent.com</code> and <code>pkgs.tailscale.com</code>. Nothing is sent anywhere else.</p>
+            <p><a class="read-script" href="https://github.com/Brick-Bread/MaterialTV/tree/main/scripts">Read the script first</a> — it's short, plain text and open source.</p>
+          </div>
+        </div>
+      </template>
+
+      <div id="others-wrap" hidden style="margin-top:40px">
+        <details class="others" id="others">
+          <summary><span>Using a different device?<small id="others-sub">Instructions for other phones and computers</small></span></summary>
+          <div class="others-body" id="others-body"></div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- Common info -->
+  <section id="before" aria-labelledby="before-h">
+    <div class="wrap">
+      <h2 id="before-h">Before you start</h2>
+      <p class="section-intro">The TV needs ADB debugging switched on. You only do this once.</p>
+      <ol class="steps">
+        <li><p>On the Fire&nbsp;TV open <span class="path">Settings › My Fire TV › Developer options</span> and turn on <strong>ADB debugging</strong>.</p></li>
+        <li><p>No Developer options? Open <span class="path">Settings › My Fire TV › About</span>, select your device name seven times, then go back.</p></li>
+        <li><p>Keep the TV on and on the same Wi-Fi as your phone or computer until <span class="only-setup">setup</span><span class="only-undo">undo</span> has finished.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="what" aria-labelledby="what-h">
+    <div class="wrap">
+      <h2 id="what-h">What setup can do</h2>
+      <p class="section-intro">Every step is optional, and everything can be undone.</p>
+      <div class="split">
+        <div class="card">
+          <h3>You choose which steps run</h3>
+          <ul class="check">
+            <li><span><strong>MaterialTV permissions:</strong> take over the Home button and hold-Home, the display filter, sleep timer, screensaver and updates.</span></li>
+            <li><span><strong>Debloat &amp; privacy</strong> using the <a href="https://github.com/humblemuzzu/dumbtv">dumbtv</a> lists: switch off Amazon's ad and tracking apps and apply privacy settings. Alexa can be kept.</span></li>
+            <li><span>Install <strong>SmartTube</strong> (ad-free YouTube for TV) from a pinned, checksum-checked release.</span></li>
+            <li><span>Install <strong>Tailscale</strong> from its official download and set it as the always-on VPN.</span></li>
+          </ul>
+        </div>
+        <div class="card undo-card">
+          <h3>Everything can be undone</h3>
+          <p>Setup records every change with the value that was there before. To reverse it:</p>
+          <ul class="check">
+            <li><span>On the TV, open <span class="path">Settings › Fire TV setup › Undo</span>. It shows a QR code that brings you back here in undo mode.</span></li>
+            <li><span>Or use this page in undo mode: <a id="undo-link" href="setup.html?undo=1">Undo setup</a>.</span></li>
+          </ul>
+          <p style="margin-top:12px">Amazon apps are only switched off, never removed.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><a href="./">MaterialTV</a> is free software under the <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL v3.0</a>. Not affiliated with Amazon or Google.</p>
+    <p><a href="https://github.com/Brick-Bread/MaterialTV">Source on GitHub</a> · <a href="https://github.com/Brick-Bread/MaterialTV/issues">Report an issue</a></p>
+  </div>
+</footer>
+
+<div class="sr-only" aria-live="polite" id="live"></div>
+
+<script>
+(function () {
+  'use strict';
+  var PAGE = 'https://brick-bread.github.io/MaterialTV/setup.html';
+  var APK = 'https://github.com/Brick-Bread/MaterialTV/releases/latest/download/m3home.apk';
+  var PS1 = 'https://raw.githubusercontent.com/Brick-Bread/MaterialTV/main/scripts/setup.ps1';
+  var SH = 'https://raw.githubusercontent.com/Brick-Bread/MaterialTV/main/scripts/setup.sh';
+  var PLACEHOLDER = '192.168.1.50';
+  var IPV4 = /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
+  var CODE = /^[A-Z0-9]{4,8}$/;
+
+  // ---- Parameters (strictly validated; anything else is ignored) ----
+  var q = new URLSearchParams(location.search);
+  var tv = IPV4.test(q.get('tv') || '') ? q.get('tv') : null;
+  var code = CODE.test(q.get('c') || '') ? q.get('c') : null;
+  var undo = q.get('undo') === '1';
+
+  // ---- Platform ----
+  function detect() {
+    var o = (q.get('platform') || '').toLowerCase();
+    if (/^(android|ios|windows|mac|linux)$/.test(o)) return o;
+    var ua = navigator.userAgent || '';
+    if (/Android/i.test(ua)) return 'android';
+    if (/iPhone|iPad|iPod/i.test(ua)) return 'ios';
+    // iPadOS reports itself as a Mac; touch support gives it away.
+    if (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1) return 'ios';
+    if (/Windows/i.test(ua)) return 'windows';
+    if (/Macintosh|Mac OS X/i.test(ua)) return 'mac';
+    return 'linux';
+  }
+  var platform = detect();
+
+  function $(id) { return document.getElementById(id); }
+  function setText(id, t) { var el = $(id); if (el) el.textContent = t; }
+
+  if (undo) {
+    document.body.classList.add('undo');
+    document.title = 'Undo setup · MaterialTV';
+  }
+
+  // ---- Build links and commands for an address ----
+  function setupQuery(ip) {
+    var p = [];
+    if (ip) p.push('tv=' + ip);
+    if (code) p.push('c=' + code);
+    if (undo) p.push('undo=1');
+    return p.join('&');
+  }
+
+  function render(ip) {
+    var shown = ip || PLACEHOLDER;
+    setText('tv-value', ip || 'Not set');
+    var qs = setupQuery(ip);
+
+    // Android intent: opens the app if installed, otherwise Chrome follows the fallback URL.
+    $('open-app').href = 'intent://setup' + (qs ? '?' + qs : '') +
+      '#Intent;scheme=m3home;package=app.m3home;S.browser_fallback_url=' + encodeURIComponent(APK) + ';end';
+
+    // Windows
+    setText('cmd-win1', '$env:M3_TV="' + shown + '"; ' + (undo ? '$env:M3_UNDO="1"; ' : '') + 'irm ' + PS1 + ' | iex');
+    setText('cmd-win2', 'cd $HOME\\Downloads\npowershell -ExecutionPolicy Bypass -File setup.ps1 -Tv ' + shown + (undo ? ' -Undo' : ''));
+    // macOS / Linux
+    setText('cmd-sh1', 'curl -fsSL ' + SH + ' | bash -s -- --tv ' + shown + (undo ? ' --undo' : ''));
+    setText('cmd-sh2', 'curl -fsSLo setup.sh ' + SH + '\nless setup.sh\nbash setup.sh --tv ' + shown + (undo ? ' --undo' : ''));
+
+    $('undo-link').href = 'setup.html?' + (ip ? 'tv=' + ip + '&' : '') + 'undo=1';
+  }
+
+  // ---- Hero ----
+  if (tv) {
+    $('tv-hint').textContent = 'Your phone or computer must be on the same Wi-Fi as this TV.';
+  } else {
+    $('ip-form').hidden = false;
+  }
+  if (code) {
+    $('code-card').hidden = false;
+    setText('code-value', code);
+    setText('code-inline', code);
+  }
+  render(tv);
+
+  $('ip-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var input = $('ip-input');
+    var v = input.value.trim();
+    var msg = $('ip-msg');
+    if (IPV4.test(v)) {
+      tv = v;
+      input.setAttribute('aria-invalid', 'false');
+      msg.className = 'ip-msg';
+      msg.textContent = 'Commands and links below now use ' + v + '.';
+      render(v);
+    } else {
+      input.setAttribute('aria-invalid', 'true');
+      msg.className = 'ip-msg err';
+      msg.textContent = 'That doesn’t look like an IP address. It should look like 192.168.1.50.';
+    }
+  });
+
+  // ---- Shared "what the script does" block ----
+  var tpl = $('about-tpl');
+  document.querySelectorAll('[data-about]').forEach(function (slot) {
+    slot.appendChild(tpl.content.cloneNode(true));
+  });
+
+  // ---- Arrange panels for this platform ----
+  var order = {
+    android: { primary: ['android'], others: ['windows', 'unix'], sub: 'Windows, Mac or Linux computer' },
+    ios:     { primary: ['ios', 'windows', 'unix'], others: ['android'], sub: 'Android phone' },
+    windows: { primary: ['windows'], others: ['android', 'unix'], sub: 'Android phone, Mac or Linux computer' },
+    mac:     { primary: ['unix'], others: ['android', 'windows'], sub: 'Android phone or Windows PC' },
+    linux:   { primary: ['unix'], others: ['android', 'windows'], sub: 'Android phone or Windows PC' }
+  }[platform];
+  var primary = $('primary'), others = $('others-body');
+  order.primary.forEach(function (k) { primary.appendChild($('panel-' + k)); });
+  order.others.forEach(function (k) { others.appendChild($('panel-' + k)); });
+  if (order.primary.indexOf('ios') < 0) $('panel-ios').remove();
+  $('others-wrap').hidden = false;
+  setText('others-sub', order.sub);
+
+  if (platform !== 'android') {
+    // Intent links do nothing outside Chrome on Android.
+    $('open-app').hidden = true;
+    $('open-app-hint').hidden = true;
+    $('open-app-elsewhere').hidden = false;
+  }
+
+  // ---- Copy buttons ----
+  var live = $('live');
+  function copyText(text, el, done) {
+    function fallback() {
+      // Select the visible text so the user can copy it manually, and try execCommand.
+      var ok = false;
+      if (el) {
+        var r = document.createRange(); r.selectNodeContents(el);
+        var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+        try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      }
+      done(ok ? 'Copied' : (el ? 'Selected — press Ctrl+C' : 'Copy failed'));
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(function () { done('Copied'); }, fallback);
+    } else { fallback(); }
+  }
+  function feedback(btn) {
+    var label = btn.querySelector('span');
+    var orig = label.textContent;
+    return function (msg) {
+      label.textContent = msg; live.textContent = msg;
+      clearTimeout(btn._t);
+      btn._t = setTimeout(function () { label.textContent = orig; }, 2000);
+    };
+  }
+  document.querySelectorAll('[data-copy-target]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var pre = $(btn.getAttribute('data-copy-target'));
+      copyText(pre.textContent, pre, feedback(btn));
+    });
+  });
+  $('copy-page') && $('copy-page').addEventListener('click', function () {
+    var qs = setupQuery(tv);
+    copyText(PAGE + (qs ? '?' + qs : ''), null, feedback($('copy-page')));
+  });
+})();
+</script>
+</body>
+</html>

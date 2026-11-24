@@ -69,10 +69,10 @@ public class DeadlinesActivity extends Activity {
         left.addView(qrCard, new LinearLayout.LayoutParams(dp(236), dp(236)));
 
         StringBuilder links = new StringBuilder();
-        if (lan != null) links.append("Wi-Fi:  http://").append(lan).append(':').append(Companion.PORT);
+        if (lan != null) links.append("Wi-Fi:  http://").append(Net.show(this, lan)).append(':').append(Companion.PORT);
         if (ts != null && !ts.isEmpty()) {
             if (links.length() > 0) links.append('\n');
-            links.append("Tailscale:  http://").append(ts).append(':').append(Companion.PORT);
+            links.append("Tailscale:  http://").append(Net.show(this, ts)).append(':').append(Companion.PORT);
         }
         if (links.length() == 0) links.append("No network connection");
         TextView urls = text(links.toString(), 16, M3.ON_SURFACE_VAR, M3.REGULAR);

@@ -3,7 +3,7 @@ package app.m3home;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-/** M3 Home's own settings (display filter, screensaver). Same file as the favourites. */
+/** MaterialTV's own settings (display filter, screensaver). Same file as the favourites. */
 final class Prefs {
     private Prefs() {}
 
@@ -12,6 +12,7 @@ final class Prefs {
     static final String WARM_STRENGTH = "blue_light_strength"; // 10..100 (%)
     static final String SS_MODE = "screensaver_mode";     // rotate | clock | shapes | slideshow
     static final String PREV_SCREENSAVER = "previous_screensaver";
+    static final String HIDE_IPS = "hide_ips";            // mask addresses on screen
     static final String SLEEP_AT = "sleep_at";            // wall-clock ms; 0 = timer off
     static final String SLEEP_MINUTES = "sleep_minutes";  // the length last chosen
 

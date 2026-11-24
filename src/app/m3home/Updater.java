@@ -29,7 +29,7 @@ import java.util.Locale;
 final class Updater {
     private Updater() {}
 
-    static final String REPO = "Brick-Bread/m3-firestick-launcher";
+    static final String REPO = "Brick-Bread/MaterialTV";
     private static final String LATEST = "https://api.github.com/repos/" + REPO + "/releases/latest";
     private static final long DAY_MS = 24 * 3600_000L;
     static final String AUTO = "update_auto";
@@ -141,7 +141,7 @@ final class Updater {
         }
     }
 
-    /** After an update: turn the Home-button service back on and return to M3 Home. */
+    /** After an update: turn the Home-button service back on and return to MaterialTV. */
     public static class Replaced extends BroadcastReceiver {
         @Override
         public void onReceive(Context c, Intent i) {

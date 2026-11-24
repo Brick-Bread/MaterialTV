@@ -4,7 +4,7 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.view.KeyEvent;
 
-/** Preview of the screensaver from M3 Home's settings. Any key closes it. */
+/** Preview of the screensaver from MaterialTV's settings. Any key closes it. */
 public class ScreensaverActivity extends Activity {
     static final String EXTRA_SLEEP = "sleep";
     private ScreensaverView view;

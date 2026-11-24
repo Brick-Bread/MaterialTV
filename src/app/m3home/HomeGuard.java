@@ -13,10 +13,10 @@ import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
 
 /**
- * M3 Home's accessibility service. It is told (res/xml/home_guard.xml) only about window changes
+ * MaterialTV's accessibility service. It is told (res/xml/home_guard.xml) only about window changes
  * in Amazon's launcher and Amazon's settings app, and reads no screen content. It does three things:
- *  - Home: when Amazon's home screen appears, M3 Home is opened on top.
- *  - Hold Home: when Amazon's quick menu (HUD) appears, it is closed and M3 Home's settings open.
+ *  - Home: when Amazon's home screen appears, MaterialTV is opened on top.
+ *  - Hold Home: when Amazon's quick menu (HUD) appears, it is closed and MaterialTV's settings open.
  *  - Display filter: draws the brightness dim and blue-light (warm) layer over everything.
  */
 public class HomeGuard extends AccessibilityService {

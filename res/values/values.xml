@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">M3 Home</string>
-    <string name="guard_name">M3 Home: Home button</string>
-    <string name="guard_desc">Opens M3 Home when you press Home, opens M3 Home settings when you hold Home, and draws the brightness and blue light filter. It only watches Amazon\'s launcher and settings windows and reads no screen content.</string>
+    <string name="app_name">MaterialTV</string>
+    <string name="guard_name">MaterialTV: Home button</string>
+    <string name="guard_desc">Opens MaterialTV when you press Home, opens MaterialTV settings when you hold Home, and draws the brightness and blue light filter. It only watches Amazon\'s launcher and settings windows and reads no screen content.</string>
 
     <!-- Material 3 dark, baseline purple -->
     <color name="m3_background">#FF141218</color>

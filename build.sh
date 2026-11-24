@@ -5,8 +5,8 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-VERSION_CODE=10
-VERSION_NAME=1.7.1
+VERSION_CODE=11
+VERSION_NAME=1.8
 MIN_SDK=28     # Fire OS 7 (Android 9) and newer
 
 SDK=${ANDROID_HOME:-${ANDROID_SDK_ROOT:-${LOCALAPPDATA:-}/Android/Sdk}}
@@ -62,7 +62,7 @@ if [[ ! -f m3home.keystore ]]; then
     echo "created a new signing key; its password is in keystore.properties (back both up)"
   fi
   keytool -genkeypair -keystore m3home.keystore -storepass "$KS_PASS" -keypass "$KS_PASS" \
-    -alias m3home -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=M3 Home" >/dev/null
+    -alias m3home -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=MaterialTV" >/dev/null
 fi
 [[ -n $KS_PASS ]] || { echo "error: set M3_KEYSTORE_PASS or create keystore.properties (password=...)" >&2; exit 1; }
 export M3_KS_PASS=$KS_PASS   # handed to apksigner via the environment, not the command line

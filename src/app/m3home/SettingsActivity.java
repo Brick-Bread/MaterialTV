@@ -27,7 +27,7 @@ import java.io.File;
 import java.util.List;
 
 /**
- * M3 Home's own settings: a Material 3 side sheet over the current screen. Opened by the Settings
+ * MaterialTV's own settings: a Material 3 side sheet over the current screen. Opened by the Settings
  * button and by holding Home. Its last section redirects into Fire TV's own settings pages.
  */
 public class SettingsActivity extends Activity {
@@ -90,7 +90,7 @@ public class SettingsActivity extends Activity {
         TextView title = text("Settings", 30, M3.ON_SURFACE, M3.REGULAR);
         title.setPadding(dp(12), 0, 0, 0);
         list.addView(title);
-        TextView sub = text("M3 Home " + version(), 15, M3.ON_SURFACE_VAR, M3.REGULAR);
+        TextView sub = text("MaterialTV " + version(), 15, M3.ON_SURFACE_VAR, M3.REGULAR);
         sub.setPadding(dp(12), dp(4), 0, dp(8));
         list.addView(sub);
 
@@ -116,7 +116,7 @@ public class SettingsActivity extends Activity {
                 () -> Prefs.warmStrength(this),
                 v -> { Prefs.of(this).edit().putInt(Prefs.WARM_STRENGTH, v).apply(); refreshFilter(); },
                 v -> v + "%");
-        note("Brightness and the filter are a layer M3 Home draws over the picture. "
+        note("Brightness and the filter are a layer MaterialTV draws over the picture. "
                 + "Your TV's own picture settings are separate.");
 
         header("Screensaver");
@@ -174,6 +174,16 @@ public class SettingsActivity extends Activity {
             Toast.makeText(this, "All apps are visible again", Toast.LENGTH_SHORT).show();
         });
 
+        toggle("Hide IP addresses", "Masks addresses on screen, for screenshots or sharing your screen",
+                () -> Prefs.of(this).getBoolean(Prefs.HIDE_IPS, false),
+                v -> Prefs.of(this).edit().putBoolean(Prefs.HIDE_IPS, v).apply());
+
+        header("Fire TV setup");
+        link("Run setup", "MaterialTV permissions, debloat and privacy, SmartTube, Tailscale",
+                () -> startActivity(new Intent(this, SetupActivity.class)));
+        link("Undo setup / uninstall", "Put everything back, and optionally remove MaterialTV",
+                () -> startActivity(new Intent(this, SetupActivity.class).putExtra(SetupActivity.EXTRA_UNDO, true)));
+
         header("Updates");
         final String[] status = { "Version " + Updater.installedVersion(this) + " · from GitHub" };
         link("Check for updates", status[0], () -> {
@@ -208,7 +218,7 @@ public class SettingsActivity extends Activity {
                 .setComponent(new ComponentName("com.amazon.tv.launcher", "com.amazon.tv.launcher.ui.MainSettingsActivity"))));
 
         String ip = Net.tailscaleIp(this);
-        note(ip == null ? "Tailscale is off" : ip.isEmpty() ? "Tailscale is on" : "Tailscale · " + ip);
+        note(ip == null ? "Tailscale is off" : ip.isEmpty() ? "Tailscale is on" : "Tailscale · " + Net.show(this, ip));
     }
 
     private static final String[] SECONDS = { "10", "15", "20", "30", "60" };
@@ -260,7 +270,7 @@ public class SettingsActivity extends Activity {
                     .putLong(Prefs.SLEEP_AT, m == 0 ? 0 : System.currentTimeMillis() + m * 60_000L)
                     .putInt(Prefs.SLEEP_MINUTES, m).apply();
             if (!HomeGuard.refreshSleep() && m != 0) {
-                Toast.makeText(this, "Turn on the M3 Home accessibility service to use this", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "Turn on the MaterialTV accessibility service to use this", Toast.LENGTH_LONG).show();
             }
             show.run();
         };
@@ -275,7 +285,7 @@ public class SettingsActivity extends Activity {
 
     private void refreshFilter() {
         if (!HomeGuard.refreshFilter()) {
-            Toast.makeText(this, "Turn on the M3 Home accessibility service to use this", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Turn on the MaterialTV accessibility service to use this", Toast.LENGTH_LONG).show();
         }
     }
 

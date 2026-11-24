@@ -170,7 +170,7 @@ final class Companion {
     // ---- the phone page (Material 3 dark, no external files) ---------------------------------
 
     private static final String PAGE = "<!doctype html><html lang=en><head><meta charset=utf-8>"
-            + "<meta name=viewport content='width=device-width,initial-scale=1'><title>M3 Home</title><style>"
+            + "<meta name=viewport content='width=device-width,initial-scale=1'><title>MaterialTV</title><style>"
             + ":root{--bg:#141218;--s1:#1D1B20;--s2:#2B2930;--p:#D0BCFF;--op:#381E72;--on:#E6E0E9;--v:#CAC4D0;--o:#49454F}"
             + "*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--on);font:16px/1.5 system-ui,Roboto,sans-serif;padding:20px 16px 48px}"
             + "h1{font-weight:400;font-size:28px;margin:4px 0 2px}h2{font-size:15px;color:var(--p);font-weight:500;margin:28px 0 10px}"
@@ -182,7 +182,7 @@ final class Companion {
             + "button{border:0;border-radius:999px;padding:12px 20px;font:500 15px system-ui,sans-serif;background:var(--s2);color:var(--on)}"
             + "button.p{background:var(--p);color:var(--op)}.x{padding:6px 12px;font-size:13px}"
             + "#msg{color:var(--p);min-height:24px;margin-top:12px}</style></head><body>"
-            + "<h1>M3 Home</h1><p class=sub>Deadlines, countdown and weather for your Fire TV</p>"
+            + "<h1>MaterialTV</h1><p class=sub>Deadlines, countdown and weather for your Fire TV</p>"
             + "<h2>Deadlines</h2><div class=card><div id=list></div><div class=f>"
             + "<input id=dt placeholder='What is due' maxlength=60><input id=dd type=date>"
             + "<button onclick=add()>Add deadline</button></div></div>"

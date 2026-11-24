@@ -100,8 +100,17 @@ public class Home extends Activity {
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
+        // On a phone, MaterialTV is the setup remote for a Fire TV, not a launcher.
+        if (!getPackageManager().hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)) {
+            startActivity(new Intent(this, PhoneSetupActivity.class));
+            finish();
+            return;
+        }
         M3.init(this);
         Secure.ensureGuard(this); // an update can switch the Home-button service off
+        if (!Prefs.of(this).getBoolean("setup_offered", false)) {
+            startActivity(new Intent(this, SetupActivity.class)); // first run: offer the setup once
+        }
         apps = new Apps(this);
         setContentView(buildScreen());
 
@@ -299,7 +308,7 @@ public class Home extends Activity {
     private TextView updateText;
     private boolean updating;
 
-    /** "M3 Home 1.7 is available · Install": shown only when GitHub has a newer release. */
+    /** "MaterialTV 1.7 is available · Install": shown only when GitHub has a newer release. */
     private View buildUpdateCard() {
         updateCard = new LinearLayout(this);
         updateCard.setOrientation(LinearLayout.HORIZONTAL);
@@ -325,7 +334,7 @@ public class Home extends Activity {
     private void refreshUpdateCard() {
         String v = Updater.available(this);
         updateCard.setVisibility(v == null ? View.GONE : View.VISIBLE);
-        if (v != null && !updating) updateText.setText("M3 Home " + v + " is available");
+        if (v != null && !updating) updateText.setText("MaterialTV " + v + " is available");
     }
 
     private void installUpdate() {
@@ -793,7 +802,7 @@ public class Home extends Activity {
         if (custom) names.add("Use the default tile");
         for (java.io.File f : pics) names.add(prettyName(f));
         if (names.isEmpty()) {
-            Toast.makeText(this, "No pictures yet. Put images in the stick's M3 Home \"tiles\" folder.",
+            Toast.makeText(this, "No pictures yet. Put images in the stick's MaterialTV \"tiles\" folder.",
                     Toast.LENGTH_LONG).show();
             return;
         }
@@ -870,6 +879,6 @@ public class Home extends Activity {
         tsText.setTextColor(up ? M3.ON_SECONDARY_CONT : M3.ON_SURFACE_VAR);
         if (!up) tsText.setText("Tailscale off");
         else if (ip.isEmpty()) tsText.setText("Tailscale on");
-        else tsText.setText("Tailscale · " + ip);
+        else tsText.setText("Tailscale · " + Net.show(this, ip));
     }
 }
