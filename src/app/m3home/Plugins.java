@@ -430,7 +430,7 @@ final class Plugins {
         try {
             body = new String(fetch(url, MAX_JSON, null, null, null), StandardCharsets.UTF_8);
         } catch (IOException e) {
-            return "Couldn't load that plugin (" + e.getMessage() + ")";
+            return "Couldn't load that plugin: " + why(url, e);
         }
         Plugin p = parse(body, url);
         if (p == null) return "That isn't a MaterialTV plugin (it needs \"api\": 1, an id and a name)";
@@ -714,6 +714,7 @@ final class Plugins {
     static String refreshAll(Context c) {
         invalidate();
         int ok = 0, failed = 0;
+        String problem = null;
         for (JSONObject o : webList(c)) {
             String id = o.optString("id"), url = o.optString("url");
             try {
@@ -723,6 +724,7 @@ final class Plugins {
                 else failed++;
             } catch (IOException e) {
                 failed++;
+                if (problem == null) problem = why(url, e);
             }
         }
         invalidate();
@@ -734,7 +736,7 @@ final class Plugins {
         changed();
         int android = 0;
         for (Plugin p : all(c)) if (p.android()) android++;
-        return "Plugins refreshed · " + ok + " web" + (failed > 0 ? " (" + failed + " didn't answer)" : "")
+        return "Plugins refreshed · " + ok + " web" + (failed > 0 ? " (" + failed + " didn't answer: " + (problem == null ? "not a plugin" : problem) + ")" : "")
                 + " · " + android + " Android";
     }
 
@@ -1215,7 +1217,21 @@ final class Plugins {
      * GET (or a webhook's GET/POST) over https, redirects followed by hand so they stay https
      * (webhooks: not followed), at most max bytes back. Throws with a short reason.
      */
+    // This thread's last fetch: HTTP status and network exception, for why() (Net.explain).
+    private static final ThreadLocal<Integer> lastCode = new ThreadLocal<>();
+    private static final ThreadLocal<Throwable> lastError = new ThreadLocal<>();
+
+    /** Why a fetch failed, in plain English (rate limit, DNS, TLS, timeout…), else its short reason. */
+    private static String why(String url, IOException e) {
+        Integer code = lastCode.get();
+        Throwable err = lastError.get();
+        if ((code == null || code == 200) && err == null) return e.getMessage();
+        return Net.explain(code == null ? 0 : code, err, url);
+    }
+
     private static byte[] fetch(String url, int max, String accept, String method, Action hook) throws IOException {
+        lastCode.remove();
+        lastError.remove();
         for (int hops = 0; hops < 5; hops++) {
             if (!httpsOk(url)) throw new IOException("not https");
             HttpURLConnection con = (HttpURLConnection) new URL(url).openConnection();
@@ -1238,6 +1254,7 @@ final class Plugins {
                     }
                 }
                 int code = con.getResponseCode();
+                lastCode.set(code);
                 if (hook != null) {
                     if (code < 200 || code >= 300) throw new IOException("HTTP " + code);
                 } else if (code >= 300 && code < 400) {
@@ -1256,11 +1273,17 @@ final class Plugins {
                     return b;
                 }
             } catch (java.net.SocketTimeoutException e) {
+                lastError.set(e);
                 throw new IOException("timed out");
             } catch (javax.net.ssl.SSLException e) {
+                lastError.set(e);
                 throw new IOException("secure connection failed");
             } catch (java.net.UnknownHostException e) {
+                lastError.set(e);
                 throw new IOException("no network or unknown site");
+            } catch (java.net.ConnectException e) {
+                lastError.set(e);
+                throw e;
             } finally {
                 con.disconnect();
             }

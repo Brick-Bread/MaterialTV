@@ -153,7 +153,7 @@ final class WebApps {
     static String install(Context c, String manifestUrl) {
         if (!Store.httpsOk(manifestUrl)) return "The manifest must be an https link";
         String body = Store.fetchText(manifestUrl);
-        if (body == null) return "Couldn't download the manifest";
+        if (body == null) return "Couldn't download the manifest: " + Store.lastProblem(manifestUrl);
         App app;
         try {
             Object parsed = parse(manifestUrl, new JSONObject(body));

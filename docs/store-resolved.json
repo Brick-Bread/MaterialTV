@@ -1,0 +1,92 @@
+{
+ "version": 1,
+ "generated": "2026-11-24T18:00:07Z",
+ "apps": [
+  {
+   "id": "spotube",
+   "repo": "KRTirtho/spotube",
+   "version": "v6.0.0",
+   "url": "https://github.com/team-spotube/spotube/releases/download/v6.0.0/Spotube-android-all-arch.apk",
+   "size": 76622081,
+   "asset": "Spotube-android-all-arch.apk"
+  },
+  {
+   "id": "simpmusic",
+   "repo": "maxrave-dev/SimpMusic",
+   "version": "v2.6.0",
+   "url": "https://github.com/maxrave-dev/SimpMusic/releases/download/v2.6.0/SimpMusic-foss-armeabi-v7a-release.apk",
+   "size": 28730871,
+   "asset": "SimpMusic-foss-armeabi-v7a-release.apk"
+  },
+  {
+   "id": "metrolist",
+   "repo": "mostafaalagamy/Metrolist",
+   "version": "v14.0.1",
+   "url": "https://github.com/MetrolistGroup/Metrolist/releases/download/v14.0.1/Metrolist.apk",
+   "size": 15088349,
+   "asset": "Metrolist.apk"
+  },
+  {
+   "id": "radiodroid",
+   "repo": "segler-alex/RadioDroid",
+   "version": "0.86",
+   "url": "https://github.com/segler-alex/RadioDroid/releases/download/0.86/RadioDroid-free-release-0.86-bafa5f3.apk",
+   "size": 10399084,
+   "asset": "RadioDroid-free-release-0.86-bafa5f3.apk"
+  },
+  {
+   "id": "smarttube",
+   "repo": "yuliskov/SmartTube",
+   "version": "32.80s",
+   "url": "https://github.com/yuliskov/SmartTube/releases/download/32.80s/SmartTube_stable_32.80_armeabi-v7a.apk",
+   "size": 25569109,
+   "asset": "SmartTube_stable_32.80_armeabi-v7a.apk"
+  },
+  {
+   "id": "jellyfin",
+   "repo": "jellyfin/jellyfin-androidtv",
+   "version": "v0.20.0",
+   "url": "https://github.com/jellyfin/jellyfin-androidtv/releases/download/v0.20.0/jellyfin-androidtv-v0.20.0-release.apk",
+   "size": 29945596,
+   "asset": "jellyfin-androidtv-v0.20.0-release.apk"
+  },
+  {
+   "id": "kodi",
+   "version": "21.3",
+   "url": "https://mirrors.kodi.tv/releases/android/arm/kodi-21.3-Omega-armeabi-v7a.apk",
+   "size": 67832726,
+   "asset": "kodi-21.3-Omega-armeabi-v7a.apk"
+  },
+  {
+   "id": "vlc",
+   "version": "3.7.1",
+   "url": "https://get.videolan.org/vlc-android/3.7.1/VLC-Android-3.7.1-armeabi-v7a.apk",
+   "size": 47073346,
+   "asset": "VLC-Android-3.7.1-armeabi-v7a.apk"
+  },
+  {
+   "id": "moonlight",
+   "repo": "moonlight-stream/moonlight-android",
+   "version": "v12.2",
+   "url": "https://github.com/moonlight-stream/moonlight-android/releases/download/v12.2/app-nonRoot-release.apk",
+   "size": 11137885,
+   "asset": "app-nonRoot-release.apk"
+  },
+  {
+   "id": "localsend",
+   "repo": "localsend/localsend",
+   "version": "v1.19.0",
+   "url": "https://github.com/localsend/localsend/releases/download/v1.19.0/LocalSend-1.19.0-android-arm32v7.apk",
+   "size": 39516499,
+   "asset": "LocalSend-1.19.0-android-arm32v7.apk"
+  },
+  {
+   "id": "tailscale",
+   "repo": "tailscale/tailscale-android",
+   "version": "1.104.7-tfb3b9b296-g226f029a3",
+   "url": "https://github.com/tailscale/tailscale-android/releases/download/1.104.7-tfb3b9b296-g226f029a3/tailscale-android-universal-1.104.7.apk",
+   "size": 105727207,
+   "asset": "tailscale-android-universal-1.104.7.apk"
+  }
+ ]
+}

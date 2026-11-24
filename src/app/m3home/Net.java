@@ -46,6 +46,21 @@ final class Net {
         return e == null ? "Couldn't reach GitHub." : "Couldn't reach GitHub (" + e.getClass().getSimpleName() + ").";
     }
 
+    /**
+     * explain(code, e) for a link that may not be on GitHub (plugin and web app manifests): names
+     * the site instead, and doesn't call a 403 from another site GitHub's rate limit.
+     */
+    static String explain(int code, Throwable e, String url) {
+        String host = null;
+        try { host = url == null ? null : new java.net.URI(url).getHost(); } catch (Exception ignored) { /* unreadable link */ }
+        if (host == null || host.endsWith("github.com") || host.endsWith("github.io") || host.endsWith("githubusercontent.com")) {
+            return explain(code, e);
+        }
+        if (code == 403 || code == 401) return host + " refused the request (error " + code + ").";
+        if (code == 429) return host + " is limiting requests from your internet connection. Try again later.";
+        return explain(code, e).replace("github.com", host).replace("GitHub", host);
+    }
+
     /** The tailnet IPv4 address, "" if a VPN is up without one, or null if no VPN is up. */
     static String tailscaleIp(Context c) {
         ConnectivityManager cm = (ConnectivityManager) c.getSystemService(Context.CONNECTIVITY_SERVICE);

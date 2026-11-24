@@ -1,0 +1,48 @@
+# Resolves the app store's GitHub releases once a day so TVs never call api.github.com for them.
+# Writes docs/store-resolved.json (served by GitHub Pages); see .github/scripts/resolve_store.py.
+name: Resolve app store
+
+on:
+  schedule:
+    - cron: "17 4 * * *"
+  push:
+    branches: [main]
+    paths:
+      - docs/store.json
+      - .github/scripts/resolve_store.py
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: store-resolve
+  cancel-in-progress: false
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Resolve releases
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python .github/scripts/resolve_store.py docs/store.json docs/store-resolved.json
+
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- docs/store-resolved.json && [ -z "$(git ls-files --others --exclude-standard docs/store-resolved.json)" ]; then
+            echo "No changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/store-resolved.json
+          git commit -m "Store: refresh resolved releases"
+          git pull --rebase
+          git push
