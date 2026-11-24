@@ -14,3 +14,4 @@ Thumbs.db
 
 # Signing key password (never commit)
 keystore.properties
+.claude/
