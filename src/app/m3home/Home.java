@@ -9,6 +9,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.ColorStateList;
+import android.graphics.Color;
+import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
@@ -40,21 +42,23 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * The home screen, Material 3 Expressive (dark, baseline purple): greeting and clock, a Tailscale
- * chip and Settings button, then Favourites, Recently used and an All apps grid.
+ * The home screen, Material 3 Expressive: greeting and clock, a Tailscale chip and Settings button,
+ * then Favourites, Recently used and an All apps grid, in the order (and tile size) set in Settings.
  */
 public class Home extends Activity {
     /** Opens Home with the first favourite picked up, ready to move. (1.9.0 contract) */
     static final String EXTRA_REORDER = "reorder";
 
-    private static final int GRID_COLUMNS = 5;
-    private static final int GRID_TILE_DP = 156;
+    // Tile widths at the "normal" size; compact is x0.8, large x1.2.
     private static final int FAV_TILE_DP = 232;
     private static final int RECENT_TILE_DP = 196;
     private static final int GAP_DP = 20;
+    private static final int SIDE_PADDING_DP = 48;
     private static final float TILE_RATIO = 0.625f; // 16:10 cards
     private static final int SHOWN_RECENTS = 8;
     private static final long TAILSCALE_POLL_MS = 5000;
+    /** Tile names stay white on every theme: the cards are always a dark tone of the app's colour. */
+    private static final int TILE_LABEL = 0xE6FFFFFF;
 
     private static final int ROW_FAVS = 0, ROW_RECENTS = 1, ROW_GRID = 2;
 
@@ -62,9 +66,23 @@ public class Home extends Activity {
     private Apps apps;
     private List<Apps.App> installed = new ArrayList<>();
 
+    // Layout from Prefs, fixed for this activity instance (a change bumps the look rev -> recreate).
+    private List<Integer> order = new ArrayList<>();
+    private int gridCols = 5, gridTileDp = 156, favTileDp = FAV_TILE_DP, recentTileDp = RECENT_TILE_DP;
+    private int builtRev;
+    private boolean imageBg;
+
+    private FrameLayout root;
     private ScrollView scroll;
     private LinearLayout column;
     private static final String ADD_TAG = "m3home:add-favourite";
+    private static final String LIFT_TAG = "m3home:lift";
+
+    // Move mode: a favourite picked up and carried with Left/Right.
+    private String movingPkg;
+    private boolean pendingReorder;
+    private int moveKeyDown = -1;
+    private TextView favHint;
 
     private TextView greeting, clock, date, tsText, allCount;
     private LinearLayout hiddenButton;
@@ -100,6 +118,11 @@ public class Home extends Activity {
     // ---- lifecycle --------------------------------------------------------------------
 
     @Override
+    protected void attachBaseContext(Context base) {
+        super.attachBaseContext(M3.scaled(base)); // the user's text size
+    }
+
+    @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
         // On a phone, MaterialTV is the setup remote for a Fire TV, not a launcher.
@@ -114,6 +137,11 @@ public class Home extends Activity {
             startActivity(new Intent(this, SetupActivity.class)); // first run: offer the setup once
         }
         apps = new Apps(this);
+        builtRev = Prefs.lookRev(this);
+        readLayout();
+        pendingReorder = getIntent().getBooleanExtra(EXTRA_REORDER, false)
+                || (state != null && state.getBoolean(EXTRA_REORDER, false));
+        getIntent().removeExtra(EXTRA_REORDER); // only once, not again on a later recreate
         setContentView(buildScreen());
 
         IntentFilter pf = new IntentFilter();
@@ -128,6 +156,10 @@ public class Home extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        if (Prefs.lookRev(this) != builtRev) { // colours, text size, layout or background changed
+            recreate();
+            return;
+        }
         resumed = true;
         IntentFilter tf = new IntentFilter();
         tf.addAction(Intent.ACTION_TIME_TICK);
@@ -151,8 +183,15 @@ public class Home extends Activity {
     protected void onPause() {
         super.onPause();
         resumed = false;
+        endMove();
         try { unregisterReceiver(timeReceiver); } catch (IllegalArgumentException ignored) { }
         ui.removeCallbacks(pollTailscale);
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle out) {
+        super.onSaveInstanceState(out);
+        if (pendingReorder) out.putBoolean(EXTRA_REORDER, true); // survives a look-change recreate
     }
 
     @Override
@@ -165,7 +204,47 @@ public class Home extends Activity {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
+        endMove();
+        if (intent != null && intent.getBooleanExtra(EXTRA_REORDER, false)) {
+            // Settings' "Reorder favourites": pick up the first favourite. onResume renders and
+            // starts it; if we're already showing, start now.
+            pendingReorder = true;
+            if (resumed && !loading && !dirty) startPendingReorder();
+            return;
+        }
         goTop();
+    }
+
+    /** While a favourite is picked up: Left/Right carry it, Select/Back/Up/Down put it down. */
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent e) {
+        if (movingPkg == null) return super.dispatchKeyEvent(e);
+        int code = e.getKeyCode();
+        boolean down = e.getAction() == KeyEvent.ACTION_DOWN;
+        switch (code) {
+            case KeyEvent.KEYCODE_DPAD_LEFT:
+            case KeyEvent.KEYCODE_DPAD_RIGHT:
+                if (down) shiftMove(code == KeyEvent.KEYCODE_DPAD_LEFT ? -1 : +1);
+                return true;
+            case KeyEvent.KEYCODE_DPAD_CENTER:
+            case KeyEvent.KEYCODE_ENTER:
+            case KeyEvent.KEYCODE_NUMPAD_ENTER:
+            case KeyEvent.KEYCODE_BUTTON_A:
+            case KeyEvent.KEYCODE_BACK:
+            case KeyEvent.KEYCODE_ESCAPE:
+            case KeyEvent.KEYCODE_MENU:
+                // Drop on release, and only for a press that began in move mode, so the click
+                // that opened move mode (or a long press) can't drop it straight away.
+                if (down) { if (e.getRepeatCount() == 0) moveKeyDown = code; }
+                else if (moveKeyDown == code) endMove();
+                return true;
+            case KeyEvent.KEYCODE_DPAD_UP:
+            case KeyEvent.KEYCODE_DPAD_DOWN:
+                if (down && e.getRepeatCount() == 0) endMove();
+                return true;
+            default:
+                return super.dispatchKeyEvent(e);
+        }
     }
 
     @Override
@@ -183,9 +262,35 @@ public class Home extends Activity {
 
     private int dp(float v) { return M3.dp(this, v); }
 
+    /** Row order and tile size from Prefs. */
+    private void readLayout() {
+        order = new ArrayList<>();
+        for (String id : Prefs.homeRows(this).split(",")) {
+            String s = id.trim();
+            int r = s.equals("favourites") ? ROW_FAVS : s.equals("recents") ? ROW_RECENTS
+                    : s.equals("apps") ? ROW_GRID : -1;
+            if (r >= 0 && !order.contains(r)) order.add(r);
+        }
+        if (order.isEmpty()) order.add(ROW_GRID); // never an empty Home: the apps grid shows anyway
+
+        String size = Prefs.tileSize(this);
+        boolean compact = "compact".equals(size), large = "large".equals(size);
+        float k = compact ? 0.8f : large ? 1.2f : 1f;
+        favTileDp = Math.round(FAV_TILE_DP * k);
+        recentTileDp = Math.round(RECENT_TILE_DP * k);
+        gridCols = compact ? 6 : large ? 4 : 5;
+        int screenDp = getResources().getConfiguration().screenWidthDp;
+        if (screenDp <= 0) screenDp = 960; // Fire TV at 1080p
+        gridTileDp = Math.max(96, (screenDp - 2 * SIDE_PADDING_DP - (gridCols - 1) * GAP_DP) / gridCols);
+    }
+
     private View buildScreen() {
-        FrameLayout root = new FrameLayout(this);
-        root.setBackground(new Glow());
+        root = new FrameLayout(this);
+        root.setBackground(new Glow()); // until the chosen background is decoded
+        imageBg = Backdrop.isImage(this);
+        Backdrop.prepare(this, () -> {
+            if (!isDestroyed() && root != null) root.setBackground(Backdrop.get(this));
+        });
 
         scroll = new ScrollView(this);
         scroll.setFillViewport(true);
@@ -196,31 +301,33 @@ public class Home extends Activity {
 
         column = new LinearLayout(this);
         column.setOrientation(LinearLayout.VERTICAL);
-        column.setPadding(dp(48), dp(32), dp(48), dp(56));
+        column.setPadding(dp(SIDE_PADDING_DP), dp(32), dp(SIDE_PADDING_DP), dp(56));
         column.setClipChildren(false);
         column.setClipToPadding(false);
 
         column.addView(buildHeader());
         column.addView(buildUpdateCard());
 
-        // Favourites
-        favSection = section("Favourites", null);
+        // Favourites (the header's second text is the move-mode hint)
+        TextView[] hint = new TextView[1];
+        favSection = section("Favourites", hint);
+        favHint = hint[0];
+        favHint.setTextColor(M3.PRIMARY);
+        favHint.setVisibility(View.GONE);
         favRow = row();
         favSection.addView(rowScroller(favRow));
-        column.addView(favSection);
 
         // Recently used
         recentSection = section("Recently used", null);
         recentRow = row();
         recentSection.addView(rowScroller(recentRow));
-        column.addView(recentSection);
 
         // All apps
         TextView[] count = new TextView[1];
         allSection = section("All apps", count);
         allCount = count[0];
         grid = new GridLayout(this);
-        grid.setColumnCount(GRID_COLUMNS);
+        grid.setColumnCount(gridCols);
         grid.setClipChildren(false);
         grid.setClipToPadding(false);
         grid.setPadding(0, dp(14), 0, 0);
@@ -232,7 +339,8 @@ public class Home extends Activity {
                 ViewGroup.LayoutParams.WRAP_CONTENT, dp(48));
         hbLp.topMargin = dp(8);
         allSection.addView(hiddenButton, hbLp);
-        column.addView(allSection);
+
+        for (int r : order) column.addView(sectionView(r)); // hidden rows are never added
 
         scroll.addView(column);
         root.addView(scroll);
@@ -249,6 +357,7 @@ public class Home extends Activity {
         left.setOrientation(LinearLayout.VERTICAL);
         greeting = new TextView(this);
         style(greeting, 18, M3.PRIMARY, M3.MEDIUM);
+        shadow(greeting);
         greeting.setLetterSpacing(0.02f);
         left.addView(greeting);
 
@@ -257,10 +366,12 @@ public class Home extends Activity {
         timeLine.setBaselineAligned(true);
         clock = new TextView(this);
         style(clock, 60, M3.ON_SURFACE, M3.REGULAR);
+        shadow(clock);
         clock.setIncludeFontPadding(false);
         clock.setLetterSpacing(-0.02f);
         date = new TextView(this);
         style(date, 20, M3.ON_SURFACE_VAR, M3.REGULAR);
+        shadow(date);
         date.setPadding(dp(18), 0, 0, 0);
         timeLine.addView(clock);
         timeLine.addView(date);
@@ -395,10 +506,12 @@ public class Home extends Activity {
         TextView t = new TextView(this);
         t.setText(title);
         style(t, 22, M3.ON_SURFACE, M3.MEDIUM);
+        shadow(t);
         head.addView(t);
         if (countOut != null) {
             TextView n = new TextView(this);
             style(n, 16, M3.ON_SURFACE_VAR, M3.REGULAR);
+            shadow(n);
             n.setPadding(dp(12), 0, 0, 0);
             head.addView(n);
             countOut[0] = n;
@@ -432,6 +545,11 @@ public class Home extends Activity {
         t.setTypeface(face);
     }
 
+    /** Over a picture background, a soft halo in the background tone keeps titles readable. */
+    private void shadow(TextView t) {
+        if (imageBg) t.setShadowLayer(dp(8), 0, dp(1), M3.alpha(M3.BACKGROUND, 0xCC));
+    }
+
     /** M3 Expressive focus: a springy scale up, a calm settle back. */
     private static void pop(View v, boolean in, float scale) {
         v.animate().cancel();
@@ -461,11 +579,12 @@ public class Home extends Activity {
         final GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
                 new int[] { M3.tone(app.tint, 1.35f), app.tint, M3.tone(app.tint, 0.72f) });
         bg.setCornerRadius(rest);
-        final GradientDrawable ring = M3.outlined(0x00000000, M3.PRIMARY, dp(3), rest);
+        final GradientDrawable ring = M3.outlined(Color.TRANSPARENT, M3.PRIMARY, dp(3), rest);
 
         final FrameLayout card = new FrameLayout(this);
         card.setBackground(bg);
         card.setClipToOutline(true);
+        card.setTag(ring); // move mode thickens it
         float nameSp = widthDp >= 200 ? 17 : 14;
         if (app.art != null) {
             ImageView art = new ImageView(this);
@@ -475,7 +594,7 @@ public class Home extends Activity {
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             View scrim = new View(this);
             scrim.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
-                    new int[] { 0x00000000, 0x00000000, 0xC0000000 }));
+                    new int[] { Color.TRANSPARENT, Color.TRANSPARENT, 0xC0000000 })); // name scrim on the picture
             card.addView(scrim, new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         } else {
@@ -503,7 +622,7 @@ public class Home extends Activity {
         label.setHorizontalFadingEdgeEnabled(true);
         label.setGravity(Gravity.CENTER);
         label.setPadding(dp(10), 0, dp(10), Math.round(h * 0.07f));
-        style(label, nameSp, 0xE6FFFFFF, M3.MEDIUM);
+        style(label, nameSp, TILE_LABEL, M3.MEDIUM);
         card.addView(label, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM));
         tile.addView(card, new LinearLayout.LayoutParams(w, h));
@@ -524,9 +643,10 @@ public class Home extends Activity {
             a.start();
             morph[0] = a;
             pop(card, has, 1.1f);
-            label.setTextColor(has ? 0xFFFFFFFF : 0xE6FFFFFF);
+            label.setTextColor(has ? Color.WHITE : TILE_LABEL);
             label.setSelected(has); // scrolls a long name while the tile is highlighted
             if (has) {
+                if (movingPkg != null && !movingPkg.equals(app.pkg)) endMove(); // focus left it (touch etc.)
                 focusPkg = app.pkg;
                 focusRow = row;
                 keepVisible(tile, row);
@@ -553,10 +673,11 @@ public class Home extends Activity {
         tile.setClipChildren(false);
         tile.setTag(ADD_TAG);
 
-        final int w = dp(FAV_TILE_DP);
+        final int w = dp(favTileDp);
         final float rest = dp(18), focused = dp(30);
+        final int idle = M3.alpha(M3.SURFACE, 0x55), lit = M3.alpha(M3.PRIMARY_CONT, 0x80);
         final GradientDrawable bg = new GradientDrawable();
-        bg.setColor(0x55211F26);
+        bg.setColor(idle);
         bg.setCornerRadius(rest);
         bg.setStroke(dp(2), M3.OUTLINE_VAR, dp(10), dp(8));
 
@@ -568,16 +689,17 @@ public class Home extends Activity {
         ImageView plus = new ImageView(this);
         plus.setImageResource(R.drawable.ic_add);
         plus.setImageTintList(ColorStateList.valueOf(M3.ON_PRIMARY_CONT));
-        plusBubble.addView(plus, new FrameLayout.LayoutParams(dp(30), dp(30), Gravity.CENTER));
         int h = Math.round(w * TILE_RATIO);
-        FrameLayout.LayoutParams blp = new FrameLayout.LayoutParams(dp(60), dp(60), Gravity.CENTER_HORIZONTAL | Gravity.TOP);
+        int bubble = Math.round(h * 0.41f); // 60dp at the normal size
+        plusBubble.addView(plus, new FrameLayout.LayoutParams(bubble / 2, bubble / 2, Gravity.CENTER));
+        FrameLayout.LayoutParams blp = new FrameLayout.LayoutParams(bubble, bubble, Gravity.CENTER_HORIZONTAL | Gravity.TOP);
         blp.topMargin = Math.round(h * 0.18f);
         card.addView(plusBubble, blp);
         final TextView label = new TextView(this);
         label.setText("Add favourite");
         label.setGravity(Gravity.CENTER);
         label.setPadding(dp(10), 0, dp(10), Math.round(h * 0.07f));
-        style(label, 17, M3.ON_SURFACE_VAR, M3.MEDIUM);
+        style(label, favTileDp >= 200 ? 17 : 14, M3.ON_SURFACE_VAR, M3.MEDIUM);
         card.addView(label, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM));
         tile.addView(card, new LinearLayout.LayoutParams(w, h));
@@ -586,7 +708,7 @@ public class Home extends Activity {
         tile.setOnFocusChangeListener((v, has) -> {
             if (has) bg.setStroke(dp(3), M3.PRIMARY);
             else bg.setStroke(dp(2), M3.OUTLINE_VAR, dp(10), dp(8));
-            bg.setColor(has ? 0x804F378B : 0x55211F26);
+            bg.setColor(has ? lit : idle);
             if (morph[0] != null) morph[0].cancel();
             ValueAnimator a = ValueAnimator.ofFloat(bg.getCornerRadius(), has ? focused : rest);
             a.setDuration(240);
@@ -599,6 +721,7 @@ public class Home extends Activity {
             pop(card, has, 1.1f);
             label.setTextColor(has ? M3.ON_SURFACE : M3.ON_SURFACE_VAR);
             if (has) {
+                if (movingPkg != null) endMove();
                 focusPkg = ADD_TAG;
                 focusRow = ROW_FAVS;
                 keepVisible(tile, ROW_FAVS);
@@ -611,16 +734,23 @@ public class Home extends Activity {
     /** Scrolls so a focused row shows with its title, or a grid tile sits comfortably on screen. */
     private void keepVisible(final View tile, final int row) {
         ui.post(() -> {
-            if (row == ROW_FAVS) { scroll.smoothScrollTo(0, 0); return; }
-            if (row == ROW_RECENTS) { scroll.smoothScrollTo(0, Math.max(0, topIn(recentSection) - dp(24))); return; }
+            boolean first = row == firstVisibleRow(); // the top row also shows the header
+            int sectionTop = first ? 0 : Math.max(0, topIn(sectionView(row)) - dp(24));
+            if (row != ROW_GRID) { scroll.smoothScrollTo(0, sectionTop); return; }
             int top = topIn(tile), height = tile.getHeight();
             int view = scroll.getHeight(), at = scroll.getScrollY(), margin = dp(72);
             int target = at;
             if (top - margin < at) target = top - margin;
             else if (top + height + margin > at + view) target = top + height + margin - view;
-            if (grid.indexOfChild(tile) < GRID_COLUMNS) target = Math.max(0, topIn(allSection) - dp(24));
+            if (grid.indexOfChild(tile) < gridCols) target = sectionTop;
             if (target != at) scroll.smoothScrollTo(0, Math.max(0, target));
         });
+    }
+
+    /** The first row on screen (Recently used hides itself while empty). */
+    private int firstVisibleRow() {
+        for (int r : order) if (sectionView(r).getVisibility() == View.VISIBLE) return r;
+        return ROW_GRID;
     }
 
     /** A view's top within the scrolling column. */
@@ -657,54 +787,68 @@ public class Home extends Activity {
     }
 
     private void render() {
-        String keepPkg = focusPkg;
-        int keepRow = focusRow;
+        String moving = movingPkg;
+        endMove(); // the tiles are rebuilt; picked up again below
+        String keepPkg = moving != null ? moving : focusPkg;
+        int keepRow = moving != null ? ROW_FAVS : focusRow;
 
         favRow.removeAllViews();
-        for (String pkg : apps.favourites()) {
-            Apps.App a = find(pkg);
-            if (a != null) favRow.addView(tile(a, FAV_TILE_DP, ROW_FAVS), rowLp());
+        if (order.contains(ROW_FAVS)) {
+            for (String pkg : apps.favourites()) {
+                Apps.App a = find(pkg);
+                if (a != null) favRow.addView(tile(a, favTileDp, ROW_FAVS), rowLp());
+            }
+            favRow.addView(addFavouriteTile(), rowLp());
         }
-        favRow.addView(addFavouriteTile(), rowLp());
 
         recentRow.removeAllViews();
-        for (String pkg : apps.recents()) {
-            if (recentRow.getChildCount() >= SHOWN_RECENTS) break;
-            Apps.App a = find(pkg);
-            if (a != null) recentRow.addView(tile(a, RECENT_TILE_DP, ROW_RECENTS), rowLp());
+        if (order.contains(ROW_RECENTS)) {
+            for (String pkg : apps.recents()) {
+                if (recentRow.getChildCount() >= SHOWN_RECENTS) break;
+                Apps.App a = find(pkg);
+                if (a != null) recentRow.addView(tile(a, recentTileDp, ROW_RECENTS), rowLp());
+            }
         }
         recentSection.setVisibility(recentRow.getChildCount() == 0 ? View.GONE : View.VISIBLE);
 
         grid.removeAllViews();
-        List<String> hiddenPkgs = apps.hidden();
-        int shown = 0, hiddenCount = 0;
-        for (Apps.App app : installed) {
-            if (hiddenPkgs.contains(app.pkg)) { hiddenCount++; continue; }
-            View t = tile(app, GRID_TILE_DP, ROW_GRID);
-            GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
-            lp.width = ViewGroup.LayoutParams.WRAP_CONTENT;
-            lp.height = ViewGroup.LayoutParams.WRAP_CONTENT;
-            boolean lastColumn = shown % GRID_COLUMNS == GRID_COLUMNS - 1;
-            lp.setMargins(0, 0, lastColumn ? 0 : dp(GAP_DP), dp(22));
-            grid.addView(t, lp);
-            shown++;
+        if (order.contains(ROW_GRID)) {
+            List<String> hiddenPkgs = apps.hidden();
+            int shown = 0, hiddenCount = 0;
+            for (Apps.App app : installed) {
+                if (hiddenPkgs.contains(app.pkg)) { hiddenCount++; continue; }
+                View t = tile(app, gridTileDp, ROW_GRID);
+                GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
+                lp.width = ViewGroup.LayoutParams.WRAP_CONTENT;
+                lp.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+                boolean lastColumn = shown % gridCols == gridCols - 1;
+                lp.setMargins(0, 0, lastColumn ? 0 : dp(GAP_DP), dp(22));
+                grid.addView(t, lp);
+                shown++;
+            }
+            allCount.setText(shown + (shown == 1 ? " app" : " apps"));
+            hiddenButton.setVisibility(hiddenCount == 0 ? View.GONE : View.VISIBLE);
+            hiddenButtonText.setText("Hidden apps · " + hiddenCount);
         }
-        allCount.setText(shown + (shown == 1 ? " app" : " apps"));
-        hiddenButton.setVisibility(hiddenCount == 0 ? View.GONE : View.VISIBLE);
-        hiddenButtonText.setText("Hidden apps · " + hiddenCount);
 
         View target = null;
         if (keepPkg != null) {
-            target = rowView(keepRow).findViewWithTag(keepPkg);
-            for (int r = ROW_FAVS; target == null && r <= ROW_GRID; r++) {
-                target = rowView(r).findViewWithTag(keepPkg);
+            if (order.contains(keepRow)) target = rowView(keepRow).findViewWithTag(keepPkg);
+            for (int r : order) {
+                if (target == null) target = rowView(r).findViewWithTag(keepPkg);
             }
         }
         if (target != null) target.requestFocus(); else focusFirstTile();
+        if (moving != null && favRow.findViewWithTag(moving) != null) startMove(moving);
+        startPendingReorder();
     }
 
     private ViewGroup rowView(int row) {
         return row == ROW_FAVS ? favRow : row == ROW_RECENTS ? recentRow : grid;
+    }
+
+    private LinearLayout sectionView(int row) {
+        return row == ROW_FAVS ? favSection : row == ROW_RECENTS ? recentSection : allSection;
     }
 
     private LinearLayout.LayoutParams rowLp() {
@@ -714,10 +858,134 @@ public class Home extends Activity {
         return lp;
     }
 
+    /** The first tile of the first row shown, in the user's row order. */
     private void focusFirstTile() {
-        if (favRow != null && favRow.getChildCount() > 0) favRow.getChildAt(0).requestFocus();
-        else if (recentRow != null && recentRow.getChildCount() > 0) recentRow.getChildAt(0).requestFocus();
-        else if (grid != null && grid.getChildCount() > 0) grid.getChildAt(0).requestFocus();
+        if (favRow == null) return;
+        for (int r : order) {
+            ViewGroup v = rowView(r);
+            if (sectionView(r).getVisibility() == View.VISIBLE && v.getChildCount() > 0) {
+                v.getChildAt(0).requestFocus();
+                return;
+            }
+        }
+    }
+
+    /** Favourite tiles on screen (not counting the "Add favourite" card). */
+    private int favTileCount() {
+        int n = 0;
+        for (int i = 0; i < favRow.getChildCount(); i++) {
+            if (!ADD_TAG.equals(favRow.getChildAt(i).getTag())) n++;
+        }
+        return n;
+    }
+
+    // ---- move mode --------------------------------------------------------------------
+
+    /** Settings' "Reorder favourites" asked for move mode: pick up the first favourite. */
+    private void startPendingReorder() {
+        if (!pendingReorder) return;
+        pendingReorder = false;
+        getIntent().removeExtra(EXTRA_REORDER);
+        if (!order.contains(ROW_FAVS)) {
+            Toast.makeText(this, "Favourites are hidden. Turn them on in Settings first.", Toast.LENGTH_LONG).show();
+            return;
+        }
+        if (favTileCount() == 0) {
+            Toast.makeText(this, "No favourites yet. Add one with the + card.", Toast.LENGTH_LONG).show();
+            View add = favRow.findViewWithTag(ADD_TAG);
+            if (add != null) add.requestFocus();
+            return;
+        }
+        startMove((String) favRow.getChildAt(0).getTag());
+    }
+
+    /** Lifts a favourite so Left/Right carry it along the row. */
+    private void startMove(String pkg) {
+        View tile = favRow.findViewWithTag(pkg);
+        if (tile == null) return;
+        if (movingPkg != null && !movingPkg.equals(pkg)) endMove();
+        tile.requestFocus();
+        movingPkg = pkg; // after requestFocus, so its focus listener doesn't see another tile moving
+        moveKeyDown = -1;
+        setLifted(tile, true);
+        favHint.setText(favTileCount() > 1 ? "Moving · ‹ › to move · Select to drop" : "Add another favourite to move it");
+        favHint.setVisibility(View.VISIBLE);
+        keepVisible(tile, ROW_FAVS);
+    }
+
+    /** Puts the lifted favourite down where it is (the order is already saved). */
+    private void endMove() {
+        if (movingPkg == null) return;
+        View tile = favRow == null ? null : favRow.findViewWithTag(movingPkg);
+        movingPkg = null;
+        moveKeyDown = -1;
+        if (tile != null) setLifted(tile, false);
+        if (favHint != null) favHint.setVisibility(View.GONE);
+    }
+
+    /** Swaps the lifted favourite with its neighbour, live: only the neighbour's view moves, so focus stays. */
+    private void shiftMove(int dir) {
+        final View tile = favRow.findViewWithTag(movingPkg);
+        if (tile == null) { endMove(); return; }
+        int i = favRow.indexOfChild(tile), j = i + dir;
+        if (j < 0 || j >= favRow.getChildCount()) return;
+        View other = favRow.getChildAt(j);
+        Object tag = other.getTag();
+        if (!(tag instanceof String) || ADD_TAG.equals(tag)) return; // the + card stays last
+        apps.moveBeside(movingPkg, (String) tag, dir > 0);
+        favRow.removeView(other);
+        favRow.addView(other, i, rowLp());
+        setLifted(tile, true); // refresh which arrows show
+        ui.post(() -> {
+            // Keep the carried tile (plus a peek at its neighbour) in view as the row scrolls.
+            Rect r = new Rect(-dp(64), 0, tile.getWidth() + dp(64), tile.getHeight());
+            tile.requestRectangleOnScreen(r, false);
+        });
+    }
+
+    /** Move mode look: raised, a thicker ring, and ‹ › bubbles on the sides it can still go. */
+    private void setLifted(View tile, boolean on) {
+        if (!(tile instanceof ViewGroup) || ((ViewGroup) tile).getChildCount() == 0) return;
+        View c = ((ViewGroup) tile).getChildAt(0);
+        if (!(c instanceof FrameLayout)) return;
+        FrameLayout card = (FrameLayout) c;
+        View old = card.findViewWithTag(LIFT_TAG);
+        if (old != null) card.removeView(old);
+        if (card.getTag() instanceof GradientDrawable) {
+            ((GradientDrawable) card.getTag()).setStroke(dp(on ? 5 : 3), M3.PRIMARY);
+        }
+        tile.animate().translationY(on ? -dp(12) : 0f).setDuration(200)
+                .setInterpolator(new DecelerateInterpolator()).start();
+        if (!on) return;
+        int i = favRow.indexOfChild(tile);
+        boolean canLeft = i > 0;
+        boolean canRight = i + 1 < favRow.getChildCount() && !ADD_TAG.equals(favRow.getChildAt(i + 1).getTag());
+        FrameLayout lift = new FrameLayout(this);
+        lift.setTag(LIFT_TAG);
+        lift.addView(arrow("‹", canLeft), arrowLp(Gravity.START));
+        lift.addView(arrow("›", canRight), arrowLp(Gravity.END));
+        card.addView(lift, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    }
+
+    private TextView arrow(String glyph, boolean visible) {
+        TextView t = new TextView(this);
+        t.setText(glyph);
+        t.setGravity(Gravity.CENTER);
+        t.setIncludeFontPadding(false);
+        t.setTextSize(TypedValue.COMPLEX_UNIT_PX, dp(30)); // fixed px: a symbol sized to its bubble
+        t.setTextColor(M3.ON_PRIMARY);
+        t.setTypeface(M3.MEDIUM);
+        t.setPadding(0, 0, 0, dp(3));
+        t.setBackground(M3.circle(M3.PRIMARY));
+        t.setVisibility(visible ? View.VISIBLE : View.INVISIBLE);
+        return t;
+    }
+
+    private FrameLayout.LayoutParams arrowLp(int side) {
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(dp(36), dp(36), side | Gravity.CENTER_VERTICAL);
+        lp.leftMargin = lp.rightMargin = dp(8);
+        return lp;
     }
 
     // ---- actions ----------------------------------------------------------------------
@@ -753,11 +1021,9 @@ public class Home extends Activity {
             if (fav && row == ROW_FAVS) focusRow = ROW_GRID;
             render();
         });
-        if (fav && row == ROW_FAVS) {
-            labels.add("Move left");
-            actions.add(() -> { apps.move(app.pkg, -1); focusPkg = app.pkg; focusRow = ROW_FAVS; render(); });
-            labels.add("Move right");
-            actions.add(() -> { apps.move(app.pkg, +1); focusPkg = app.pkg; focusRow = ROW_FAVS; render(); });
+        if (fav && row == ROW_FAVS && favTileCount() > 1) {
+            labels.add("Move");
+            actions.add(() -> startMove(app.pkg));
         }
         if (row == ROW_RECENTS) {
             labels.add("Remove from recently used");
@@ -879,7 +1145,7 @@ public class Home extends Activity {
         boolean up = ip != null;
         tsChip.setBackground(up
                 ? M3.rounded(M3.SECONDARY_CONT, dp(22))
-                : M3.outlined(0x66211F26, M3.OUTLINE_VAR, dp(1), dp(22)));
+                : M3.outlined(M3.alpha(M3.SURFACE, 0x66), M3.OUTLINE_VAR, dp(1), dp(22)));
         tsIcon.setImageTintList(ColorStateList.valueOf(up ? M3.PRIMARY : M3.ERROR));
         tsText.setTextColor(up ? M3.ON_SECONDARY_CONT : M3.ON_SURFACE_VAR);
         if (!up) tsText.setText("Tailscale off");

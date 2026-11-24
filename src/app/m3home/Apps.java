@@ -40,7 +40,10 @@ final class Apps {
             this.leanback = leanback;
             this.icon = icon;
             this.art = art;
-            this.tint = M3.containerFor(icon);
+            // Tiles always keep white names, so an icon with no colour falls back to the dark
+            // surface (not the theme's, which is pale in light mode).
+            int t = M3.containerFor(icon);
+            this.tint = t == M3.SURFACE_HIGH ? M3.dark().surfaceHigh : t;
         }
 
         Intent launchIntent() {
@@ -188,10 +191,25 @@ final class Apps {
     /** Replaces the favourites with this order. (1.9.0 contract) */
     void setFavourites(List<String> pkgs) { putList(KEY_FAVS, pkgs); }
 
-    /** Every launchable app as {pkg, label}, without loading icons. (1.9.0 contract stub; WP1 makes it fast.) */
+    /** Every launchable app as {pkg, label}, sorted by name, without loading icons or pictures. (1.9.0 contract) */
     List<String[]> labels() {
+        PackageManager pm = context.getPackageManager();
+        Map<String, String> byPkg = new LinkedHashMap<>();
+        for (String category : new String[] { Intent.CATEGORY_LEANBACK_LAUNCHER, Intent.CATEGORY_LAUNCHER }) {
+            Intent query = new Intent(Intent.ACTION_MAIN).addCategory(category);
+            for (ResolveInfo r : pm.queryIntentActivities(query, 0)) {
+                ActivityInfo ai = r.activityInfo;
+                if (ai == null || ai.packageName.equals(context.getPackageName())) continue;
+                if (byPkg.containsKey(ai.packageName)) continue; // TV entry wins over the phone one
+                CharSequence label;
+                try { label = r.loadLabel(pm); } catch (RuntimeException e) { label = null; }
+                byPkg.put(ai.packageName, label == null ? ai.packageName : label.toString());
+            }
+        }
         List<String[]> out = new ArrayList<>();
-        for (App a : load()) out.add(new String[] { a.pkg, a.label });
+        for (Map.Entry<String, String> e : byPkg.entrySet()) out.add(new String[] { e.getKey(), e.getValue() });
+        final Collator collator = Collator.getInstance();
+        Collections.sort(out, (a, b) -> collator.compare(a[1], b[1]));
         return out;
     }
 
@@ -260,13 +278,23 @@ final class Apps {
         save(f);
     }
 
-    /** Moves a favourite one step left (-1) or right (+1). */
+    /** Moves a favourite one step left (-1) or right (+1) in the stored list. */
     void move(String pkg, int delta) {
         List<String> f = favourites();
         int i = f.indexOf(pkg);
         int j = i + delta;
         if (i < 0 || j < 0 || j >= f.size()) return;
         Collections.swap(f, i, j);
+        save(f);
+    }
+
+    /** Puts pkg just before (after=false) or just after (after=true) the favourite next. */
+    void moveBeside(String pkg, String next, boolean after) {
+        List<String> f = favourites();
+        if (pkg.equals(next) || !f.remove(pkg)) return;
+        int j = f.indexOf(next);
+        if (j < 0) return;
+        f.add(after ? j + 1 : j, pkg);
         save(f);
     }
 
