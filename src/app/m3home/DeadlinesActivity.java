@@ -170,7 +170,7 @@ public class DeadlinesActivity extends Activity {
         line("Colours", accentName + " · " + (Prefs.light(this) ? "Light" : "Dark") + " · " + cap(Prefs.of(this).getString(Prefs.TEXT_SIZE, "normal")) + " text");
         String kind = Prefs.bgKind(this);
         line("Background", kind.equals("solid") ? "Solid colour" : kind.equals("wallpaper") ? "Wallpaper"
-                : kind.equals("custom") ? "Your picture" : "Gradient");
+                : kind.equals("slideshow") ? "Slideshow" : kind.equals("custom") ? "Your picture" : "Gradient");
         StringBuilder rows = new StringBuilder();
         for (String r : Prefs.homeRows(this).split(",")) {
             String name = r.equals("favourites") ? "Favourites" : r.equals("recents") ? "Recently used" : r.equals("apps") ? "All apps" : null;

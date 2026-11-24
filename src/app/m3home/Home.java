@@ -188,6 +188,7 @@ public class Home extends Activity {
         if (order.contains(ROW_STORE)) Store.refreshIfDue(this);
         ui.removeCallbacks(pollTailscale);
         ui.post(pollTailscale);
+        scheduleSlide(); // background slideshow: next picture when due (soon if overdue)
         if (dirty) {
             load();
         } else if (!loading) {
@@ -202,7 +203,37 @@ public class Home extends Activity {
         endMove();
         try { unregisterReceiver(timeReceiver); } catch (IllegalArgumentException ignored) { }
         ui.removeCallbacks(pollTailscale);
+        ui.removeCallbacks(slideTick);
     }
+
+    // ---- background slideshow --- begin -------------------------------------------------
+    private static final int SLIDE_FADE_MS = 1500;
+
+    private final Runnable slideTick = () -> Backdrop.nextSlide(this, changed -> {
+        if (isDestroyed() || root == null) return;
+        if (changed) crossfadeBackground();
+        if (resumed) scheduleSlide();
+    });
+
+    private void scheduleSlide() {
+        ui.removeCallbacks(slideTick);
+        if (Backdrop.isSlideshow(this)) ui.postDelayed(slideTick, Backdrop.slideDelay(this));
+    }
+
+    /** Fades from the background showing now to Backdrop's new picture, then lets the old one go. */
+    private void crossfadeBackground() {
+        android.graphics.drawable.Drawable next = Backdrop.get(this), cur = root.getBackground();
+        if (cur instanceof android.graphics.drawable.TransitionDrawable) {
+            cur = ((android.graphics.drawable.TransitionDrawable) cur).getDrawable(1); // a fade still running
+        }
+        if (cur == null) { root.setBackground(next); return; }
+        final android.graphics.drawable.TransitionDrawable fade =
+                new android.graphics.drawable.TransitionDrawable(new android.graphics.drawable.Drawable[] { cur, next });
+        root.setBackground(fade);
+        fade.startTransition(SLIDE_FADE_MS);
+        ui.postDelayed(() -> { if (root != null && root.getBackground() == fade) root.setBackground(next); }, SLIDE_FADE_MS + 100);
+    }
+    // ---- background slideshow --- end ---------------------------------------------------
 
     @Override
     protected void onSaveInstanceState(Bundle out) {
@@ -212,6 +243,7 @@ public class Home extends Activity {
 
     @Override
     protected void onDestroy() {
+        ui.removeCallbacks(slideTick);
         try { unregisterReceiver(packageReceiver); } catch (IllegalArgumentException ignored) { }
         Store.setListener(null); // installs carry on; only the badges stop
         super.onDestroy();

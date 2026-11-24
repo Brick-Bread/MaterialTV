@@ -68,8 +68,8 @@ public class SettingsActivity extends Activity {
     private static final String[] THEME_NAMES = { "Dark", "Light" };
     private static final String[] TEXT_SIZES = { "small", "normal", "large" };
     private static final String[] TEXT_NAMES = { "Small", "Normal", "Large" };
-    private static final String[] BG_KINDS = { "gradient", "solid", "wallpaper", "custom" };
-    private static final String[] BG_NAMES = { "Gradient", "Solid colour", "Wallpaper", "Your picture" };
+    private static final String[] BG_KINDS = { "gradient", "solid", "wallpaper", "slideshow", "custom" };
+    private static final String[] BG_NAMES = { "Gradient", "Solid colour", "Wallpaper", "Slideshow", "Your picture" };
     private static final String[] SOLID_NAMES = { "Charcoal", "Midnight", "Forest", "Plum", "Black" };
 
     private static final int[] SLEEP_MINUTES = { 0, 15, 30, 45, 60, 90, 120 };
@@ -405,10 +405,12 @@ public class SettingsActivity extends Activity {
                     lookChanged(true, followsBackground());
                 });
             }
+        } else if ("slideshow".equals(kind)) {
+            slideshowRows();
         } else if ("custom".equals(kind) && !new File(getFilesDir(), "background/custom.jpg").exists()) {
             note("No picture yet. Upload one from your phone below.");
         }
-        if ("wallpaper".equals(kind) || "custom".equals(kind)) {
+        if ("wallpaper".equals(kind) || "custom".equals(kind) || "slideshow".equals(kind)) {
             slider("Dim", 0, 80, 10, () -> Prefs.bgDim(this), v -> {
                 Prefs.of(this).edit().putInt(Prefs.BG_DIM, v).apply();
                 lookChanged(true, false);
@@ -422,6 +424,45 @@ public class SettingsActivity extends Activity {
                 () -> startActivity(new Intent(this, DeadlinesActivity.class)
                         .putExtra(DeadlinesActivity.EXTRA_CUSTOMISE, true)));
     }
+
+    // ---- background slideshow --- begin -------------------------------------------------
+    /** Customise > Background when Style is Slideshow: how often, and which themes' pictures. */
+    private void slideshowRows() {
+        wallpaperChoices = Backdrop.wallpaperOptions(this).size(); // redraw when a download finishes
+        if (wallpaperChoices == 0) {
+            link("Download wallpapers", "None yet, so Home shows the gradient. Turn on a theme in Screensaver & sleep",
+                    () -> push(SCREENSAVER));
+            return;
+        }
+        final int[] mins = Prefs.BG_SLIDE_CHOICES;
+        String[] names = new String[mins.length];
+        for (int i = 0; i < mins.length; i++) names[i] = minutes(mins[i]);
+        choice("Change every", names, () -> {
+            int m = Prefs.bgSlideMinutes(this);
+            for (int i = 0; i < mins.length; i++) if (mins[i] == m) return i;
+            return 0;
+        }, i -> Prefs.of(this).edit().putInt(Prefs.BG_SLIDE_MINUTES, mins[i]).apply()); // Home reads it on resume
+        for (final String theme : Prefs.THEMES) {
+            int n = Backdrop.slideCount(this, theme);
+            String name = theme.substring(0, 1).toUpperCase(java.util.Locale.ROOT) + theme.substring(1);
+            toggle(name + " pictures", n == 0 ? "Not downloaded" : n == 1 ? "1 picture" : n + " pictures",
+                    () -> Prefs.bgSlideThemes(this).contains(theme), v -> {
+                List<String> chosen = Prefs.bgSlideThemes(this);
+                if (v && !chosen.contains(theme)) chosen.add(theme);
+                if (!v) chosen.remove(theme);
+                if (chosen.isEmpty()) {
+                    Toast.makeText(this, "Keep at least one theme on", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                StringBuilder csv = new StringBuilder();
+                for (String t : Prefs.THEMES) if (chosen.contains(t)) csv.append(csv.length() == 0 ? "" : ",").append(t);
+                boolean all = chosen.size() == Prefs.THEMES.length;
+                Prefs.of(this).edit().putString(Prefs.BG_SLIDE_THEMES, all ? "" : csv.toString()).apply();
+                lookChanged(true, followsBackground());
+            });
+        }
+    }
+    // ---- background slideshow --- end ---------------------------------------------------
 
     private void screensaverPage() {
         title("Settings", "Screensaver & sleep");

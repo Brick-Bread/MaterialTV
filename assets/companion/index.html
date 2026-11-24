@@ -111,6 +111,9 @@ details[open] summary::after{content:"\25B4"}
         <label class="row" style="border:0"><span class="t"><b>Any colour</b></span><input type="color" id="bgPick" style="width:56px;height:44px;border:0;background:none;padding:0"></label></div>
       <div class="blk" id="bgWall"><label class="lbl" for="bgWallSel">Picture</label><select id="bgWallSel"></select>
         <p class="note" id="bgWallNone">No wallpapers downloaded yet. Switch one on under Screensaver below.</p></div>
+      <div class="blk" id="bgSlide"><label class="lbl" for="bgSlideMin">Change every</label><select id="bgSlideMin"></select>
+        <div id="bgSlideThemes"></div>
+        <p class="note" id="bgSlideNone">No wallpapers downloaded yet, so the TV shows the gradient. Switch one on under Screensaver below.</p></div>
       <div class="blk" id="bgSliders">
         <label class="lbl" for="bgDim">Dim <span id="bgDimV"></span></label><input type="range" id="bgDim" min="0" max="80" step="5">
         <label class="lbl" for="bgBlur">Blur <span id="bgBlurV"></span></label><input type="range" id="bgBlur" min="0" max="100" step="5">
@@ -305,11 +308,24 @@ function renderCfg() {
 
   // Background
   var bg = C.bg;
-  seg($('bgKind'), [['gradient', 'Gradient'], ['solid', 'Colour'], ['wallpaper', 'Wallpaper'], ['custom', 'Your picture']], bg.kind,
+  seg($('bgKind'), [['gradient', 'Gradient'], ['solid', 'Colour'], ['wallpaper', 'Wallpaper'], ['slideshow', 'Slideshow'], ['custom', 'Your picture']], bg.kind,
     function (v) { saveCfg({ bg: { kind: v } }); });
   $('bgSolid').classList.toggle('hide', bg.kind !== 'solid');
   $('bgWall').classList.toggle('hide', bg.kind !== 'wallpaper');
-  $('bgSliders').classList.toggle('hide', bg.kind !== 'wallpaper' && bg.kind !== 'custom');
+  $('bgSlide').classList.toggle('hide', bg.kind !== 'slideshow');
+  $('bgSliders').classList.toggle('hide', bg.kind !== 'wallpaper' && bg.kind !== 'custom' && bg.kind !== 'slideshow');
+  // Slideshow: how often, and which themes' pictures
+  var counts = bg.themeCounts || {}, anyPics = Object.keys(counts).some(function (t) { return counts[t] > 0; });
+  $('bgSlideMin').innerHTML = [[1, '1 minute'], [5, '5 minutes'], [15, '15 minutes'], [30, '30 minutes'], [60, '1 hour']].map(function (o) {
+    return '<option value="' + o[0] + '"' + (o[0] === bg.minutes ? ' selected' : '') + '>' + o[1] + '</option>';
+  }).join('');
+  $('bgSlideMin').classList.toggle('hide', !anyPics);
+  $('bgSlideNone').classList.toggle('hide', anyPics);
+  $('bgSlideThemes').innerHTML = !anyPics ? '' : Object.keys(counts).map(function (t) {
+    var n = counts[t], name = t.charAt(0).toUpperCase() + t.slice(1) + ' pictures';
+    return row(name, n ? n + (n === 1 ? ' picture' : ' pictures') : 'Not downloaded',
+      sw((bg.themes || []).indexOf(t) >= 0, 'data-bgtheme="' + esc(t) + '" aria-label="' + esc(name) + '"'));
+  }).join('');
   $('bgColors').innerHTML = C.solidPresets.map(function (c) {
     return '<button class="dot" data-bgc="' + hexOk(c) + '" aria-pressed="' + (hexOk(c).toUpperCase() === hexOk(bg.color).toUpperCase())
       + '" aria-label="' + hexOk(c) + '"><i style="background:' + hexOk(c) + '"></i></button>';
@@ -396,6 +412,11 @@ document.addEventListener('click', function (ev) {
     if (d.accent !== C.accent) saveCfg({ accent: d.accent });
   } else if (d.bgc) {
     saveCfg({ bg: { kind: 'solid', color: d.bgc } });
+  } else if (d.bgtheme) {
+    var bt = (C.bg.themes || []).slice(), at2 = bt.indexOf(d.bgtheme);
+    if (at2 >= 0) bt.splice(at2, 1); else bt.push(d.bgtheme);
+    if (!bt.length) { snack('Keep at least one theme on', true); return; }
+    saveCfg({ bg: { themes: bt } });
   } else if (d.widget) {
     var wp = { widgets: {} }; wp.widgets[d.widget] = !C.widgets[d.widget];
     saveCfg(wp);
@@ -432,6 +453,7 @@ $('favAddBtn').addEventListener('click', function () {
 });
 $('bgPick').addEventListener('change', function () { saveCfg({ bg: { kind: 'solid', color: this.value } }); });
 $('bgWallSel').addEventListener('change', function () { if (this.value) saveCfg({ bg: { kind: 'wallpaper', wallpaper: this.value } }); });
+$('bgSlideMin').addEventListener('change', function () { saveCfg({ bg: { minutes: +this.value } }); });
 ['bgDim', 'bgBlur'].forEach(function (id) {
   var el = $(id);
   el.addEventListener('input', function () { $(id + 'V').textContent = el.value + '%'; });
