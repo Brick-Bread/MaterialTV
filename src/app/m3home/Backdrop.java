@@ -13,6 +13,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.TextUtils;
 import android.util.DisplayMetrics;
 
 import java.io.File;
@@ -23,10 +24,12 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 
 /**
  * The Home screen background: gradient, solid colour, a downloaded wallpaper or your own picture.
@@ -198,10 +201,124 @@ final class Backdrop {
         Prefs.bumpLook(c);
     }
 
+    // ---- slideshow (BG_KIND "slideshow") --- begin -----------------------------------------
+    // The current slide is Prefs.BG_SLIDE_CURRENT, so get/prepare/isImage/seed treat it like a
+    // wallpaper. nextSlide() swaps in the next one without changed(): no new seed colour and no
+    // look bump per slide. At most the shown bitmap and the one being made are held.
+
+    private static boolean advancing; // a nextSlide() is in flight (main thread only)
+
+    static boolean isSlideshow(Context c) { return "slideshow".equals(Prefs.bgKind(c)); }
+
+    /** Every picture the slideshow can show: the chosen themes, else every downloaded theme. Ids "<theme>/<file>". */
+    static List<String> slidePool(Context c) {
+        List<String> out = poolOf(c, Prefs.bgSlideThemes(c));
+        if (out.isEmpty()) out = poolOf(c, Arrays.asList(Prefs.THEMES));
+        return out;
+    }
+
+    /** How many pictures a theme has for the slideshow. */
+    static int slideCount(Context c, String theme) {
+        return poolOf(c, Collections.singletonList(theme)).size();
+    }
+
+    private static List<String> poolOf(Context c, List<String> themes) {
+        List<String> out = new ArrayList<>();
+        for (String theme : themes) {
+            for (File f : Wallpapers.files(c, theme)) if (ScreensaverView.isImage(f)) out.add(theme + "/" + f.getName());
+        }
+        return out;
+    }
+
+    /** The slide showing now; picks (and saves) one when there's none yet or it's gone. Null when there are no pictures. */
+    private static String slideCurrent(Context c) {
+        SharedPreferences p = Prefs.of(c);
+        String id = p.getString(Prefs.BG_SLIDE_CURRENT, null);
+        List<String> pool = slidePool(c);
+        if (id != null && pool.contains(id)) return id;
+        if (pool.isEmpty()) return null;
+        id = nextSlideId(c, pool, id);
+        p.edit().putString(Prefs.BG_SLIDE_CURRENT, id).putLong(Prefs.BG_SLIDE_AT, System.currentTimeMillis()).apply();
+        return id;
+    }
+
+    /** The next id from the shuffled bag; a fresh shuffle when it runs out, never starting with current. */
+    private static String nextSlideId(Context c, List<String> pool, String current) {
+        SharedPreferences p = Prefs.of(c);
+        List<String> bag = new ArrayList<>();
+        for (String s : p.getString(Prefs.BG_SLIDE_BAG, "").split("\n")) {
+            if (pool.contains(s) && !s.equals(current) && !bag.contains(s)) bag.add(s);
+        }
+        if (bag.isEmpty()) {
+            bag.addAll(pool);
+            Collections.shuffle(bag);
+            if (bag.size() > 1 && bag.get(0).equals(current)) Collections.swap(bag, 0, bag.size() - 1);
+        }
+        String next = bag.remove(0);
+        p.edit().putString(Prefs.BG_SLIDE_BAG, TextUtils.join("\n", bag)).apply();
+        return next;
+    }
+
+    /** Milliseconds until the next slide is due (at least a second; overdue counts as now). */
+    static long slideDelay(Context c) {
+        SharedPreferences p = Prefs.of(c);
+        long now = System.currentTimeMillis(), at = p.getLong(Prefs.BG_SLIDE_AT, 0);
+        if (at <= 0 || at > now) { // never started, or the clock went back
+            at = now;
+            p.edit().putLong(Prefs.BG_SLIDE_AT, at).apply();
+        }
+        return Math.max(1000L, at + Prefs.bgSlideMinutes(c) * 60_000L - now);
+    }
+
+    /**
+     * Makes the next slide off the main thread, then (on the main thread) makes it the current
+     * background and calls done(true), after which get() returns it. done(false) when nothing changed.
+     */
+    static void nextSlide(Context c, Consumer<Boolean> done) {
+        final Context app = c.getApplicationContext();
+        if (advancing) { main.postDelayed(() -> done.accept(false), 1000); return; }
+        boolean on = isSlideshow(app);
+        List<String> pool = on ? slidePool(app) : new ArrayList<>();
+        String cur = on ? slideCurrent(app) : null;
+        final String next = pool.size() < 2 ? null : nextSlideId(app, pool, cur);
+        final File src = wallpaperFile(app, next);
+        if (src == null) { // nothing else to show: wait a whole turn
+            if (on) Prefs.of(app).edit().putLong(Prefs.BG_SLIDE_AT, System.currentTimeMillis()).apply();
+            main.post(() -> done.accept(false));
+            return;
+        }
+        advancing = true;
+        final String key = keyOf(app, src);
+        final int dim = Prefs.bgDim(app), blur = Prefs.bgBlur(app);
+        final int height = height(app);
+        worker.execute(() -> {
+            Bitmap made;
+            try {
+                made = render(src, WIDTH, height, dim, blur);
+                if (made != null) saveCache(app, key, made); // a cold start shows this one straight away
+            } catch (OutOfMemoryError | RuntimeException e) {
+                made = null;
+            }
+            final Bitmap result = made;
+            main.post(() -> {
+                advancing = false;
+                SharedPreferences.Editor e = Prefs.of(app).edit().putLong(Prefs.BG_SLIDE_AT, System.currentTimeMillis());
+                if (result == null || !isSlideshow(app)) { e.apply(); done.accept(false); return; }
+                synchronized (Backdrop.class) {
+                    bitmap = result; // the old one is only dropped: Home fades it out, then lets it go
+                    bitmapKey = key;
+                }
+                e.putString(Prefs.BG_SLIDE_CURRENT, next).apply();
+                done.accept(true);
+            });
+        });
+    }
+    // ---- slideshow --- end -----------------------------------------------------------------
+
     // ---- internals ---------------------------------------------------------------------------
 
     private static boolean isImageKind(String kind) {
-        return "wallpaper".equals(kind) || "custom".equals(kind);
+        return "wallpaper".equals(kind) || "custom".equals(kind) || "slideshow".equals(kind);
     }
 
     private static File dir(Context c) {
@@ -217,25 +334,32 @@ final class Backdrop {
         if ("custom".equals(kind)) {
             f = new File(new File(c.getFilesDir(), "background"), "custom.jpg");
         } else if ("wallpaper".equals(kind)) {
-            String id = Prefs.of(c).getString(Prefs.BG_WALLPAPER, null);
-            int slash = id == null ? -1 : id.indexOf('/');
-            if (slash > 0) {
-                String theme = id.substring(0, slash), name = id.substring(slash + 1);
-                if (Arrays.asList(Prefs.THEMES).contains(theme) && !name.isEmpty()
-                        && name.indexOf('/') < 0 && name.indexOf('\\') < 0 && !name.startsWith(".")) {
-                    File d = Wallpapers.dir(c, theme);
-                    if (d != null) f = new File(d, name);
-                }
-            }
-            if (f != null && !ScreensaverView.isImage(f)) f = null;
+            f = wallpaperFile(c, Prefs.of(c).getString(Prefs.BG_WALLPAPER, null));
+        } else if ("slideshow".equals(kind)) {
+            f = wallpaperFile(c, slideCurrent(c));
         }
         return f != null && f.isFile() ? f : null;
+    }
+
+    /** A downloaded wallpaper picture by its id "<theme>/<file>", or null when the id is bad or it isn't a picture. */
+    private static File wallpaperFile(Context c, String id) {
+        int slash = id == null ? -1 : id.indexOf('/');
+        if (slash <= 0) return null;
+        String theme = id.substring(0, slash), name = id.substring(slash + 1);
+        if (!Arrays.asList(Prefs.THEMES).contains(theme) || name.isEmpty()
+                || name.indexOf('/') >= 0 || name.indexOf('\\') >= 0 || name.startsWith(".")) return null;
+        File d = Wallpapers.dir(c, theme);
+        File f = d == null ? null : new File(d, name);
+        return f != null && ScreensaverView.isImage(f) && f.isFile() ? f : null;
     }
 
     /** What the prepared picture depends on, or null when there's no picture to show. */
     private static String key(Context c) {
         File f = source(c);
-        if (f == null) return null;
+        return f == null ? null : keyOf(c, f);
+    }
+
+    private static String keyOf(Context c, File f) {
         return f.getPath() + "|" + f.lastModified() + "|" + f.length() + "|" + Prefs.bgDim(c) + "|" + Prefs.bgBlur(c)
                 + "|" + WIDTH + "x" + height(c);
     }

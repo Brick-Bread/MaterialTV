@@ -58,7 +58,7 @@ final class Companion {
     static final String[] TILE_SIZES = { "compact", "normal", "large" };
     static final String[] THEME_MODES = { "dark", "light" };
     static final String[] TEXT_SIZES = { "small", "normal", "large" };
-    static final String[] BG_KINDS = { "gradient", "solid", "wallpaper", "custom" };
+    static final String[] BG_KINDS = { "gradient", "solid", "wallpaper", "slideshow", "custom" };
     static final String[] SS_MODES = { "rotate", "clock", "shapes", "slideshow" };
     static final String[] SS_MEDIA = { "both", "stills", "live" };
     static final int[] SS_SECONDS = { 10, 15, 20, 30, 60 };
@@ -496,6 +496,12 @@ final class Companion {
         bg.put("wallpaper", p.getString(Prefs.BG_WALLPAPER, ""));
         bg.put("dim", Prefs.bgDim(c));
         bg.put("blur", Prefs.bgBlur(c));
+        // slideshow: minutes per picture, chosen themes (all = every downloaded theme), pictures per theme
+        bg.put("minutes", Prefs.bgSlideMinutes(c));
+        bg.put("themes", new JSONArray(Prefs.bgSlideThemes(c)));
+        JSONObject slideCounts = new JSONObject();
+        for (String t : Prefs.THEMES) slideCounts.put(t, Backdrop.slideCount(c, t));
+        bg.put("themeCounts", slideCounts);
         o.put("bg", bg);
         JSONArray presets = new JSONArray();
         for (int col : Backdrop.SOLID_PRESETS) presets.put(hex(col));
@@ -607,6 +613,33 @@ final class Companion {
                     }
                     background |= putInt(bg, "dim", 0, 80, e, Prefs.BG_DIM, skipped);
                     background |= putInt(bg, "blur", 0, 100, e, Prefs.BG_BLUR, skipped);
+                    // slideshow
+                    if (bg.has("minutes")) {
+                        Object m = bg.opt("minutes");
+                        int mi = m instanceof Number ? ((Number) m).intValue() : -1;
+                        boolean ok = m instanceof Number && ((Number) m).doubleValue() == mi;
+                        boolean known = false;
+                        for (int k : Prefs.BG_SLIDE_CHOICES) if (k == mi) known = true;
+                        if (!ok || !known) skipped.add("bg.minutes");
+                        else e.putInt(Prefs.BG_SLIDE_MINUTES, mi); // read on Home's next resume, no rebuild needed
+                    }
+                    if (bg.has("themes")) {
+                        JSONArray ts = bg.optJSONArray("themes");
+                        List<String> chosen = new ArrayList<>();
+                        boolean ok = ts != null && ts.length() > 0;
+                        for (int i = 0; ok && i < ts.length(); i++) {
+                            Object t = ts.opt(i);
+                            if (!(t instanceof String) || indexOf(Prefs.THEMES, (String) t) < 0) ok = false;
+                            else if (!chosen.contains(t)) chosen.add((String) t);
+                        }
+                        if (!ok) skipped.add("bg.themes");
+                        else {
+                            StringBuilder csv = new StringBuilder();
+                            for (String t : Prefs.THEMES) if (chosen.contains(t)) csv.append(csv.length() == 0 ? "" : ",").append(t);
+                            e.putString(Prefs.BG_SLIDE_THEMES, chosen.size() == Prefs.THEMES.length ? "" : csv.toString());
+                            background = true;
+                        }
+                    }
                 }
             }
 

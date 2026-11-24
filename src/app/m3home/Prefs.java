@@ -72,13 +72,20 @@ final class Prefs {
     static final String THEME_MODE = "theme_mode";     // dark | light
     static final String TEXT_SIZE = "text_size";       // small | normal | large
     // Home background
-    static final String BG_KIND = "bg_kind";           // gradient | solid | wallpaper | custom
+    static final String BG_KIND = "bg_kind";           // gradient | solid | wallpaper | custom | slideshow
     static final String BG_COLOR = "bg_color";         // int ARGB
     static final String BG_WALLPAPER = "bg_wallpaper"; // "<theme>/<filename>" in the screensaver folder
     static final String BG_DIM = "bg_dim";             // 0..80 (%)
     static final String BG_BLUR = "bg_blur";           // 0..100
     static final String BG_SEED = "bg_seed";           // int colour picked from the background (for accent=background)
     static final String LOOK_REV = "look_rev";         // bumped on any look/layout change; screens recreate when it moves
+    // Background slideshow (bg_kind = slideshow): downloaded wallpaper pictures, one after another
+    static final String BG_SLIDE_MINUTES = "bg_slide_minutes"; // 1 | 5 | 15 | 30 | 60
+    static final String BG_SLIDE_THEMES = "bg_slide_themes";   // CSV of THEMES; missing/empty = every downloaded theme
+    static final String BG_SLIDE_CURRENT = "bg_slide_current"; // "<theme>/<filename>" showing now (Backdrop's own)
+    static final String BG_SLIDE_AT = "bg_slide_at";           // wall-clock ms it started showing (Backdrop's own)
+    static final String BG_SLIDE_BAG = "bg_slide_bag";         // shuffled "<theme>/<file>" still to come, "\n"-separated (Backdrop's own)
+    static final int[] BG_SLIDE_CHOICES = { 1, 5, 15, 30, 60 };
 
     // App store (1.10.0)
     static final String STORE_CUSTOM = "store_custom"; // JSON array of your own apps: {id, name, repo | url}
@@ -107,6 +114,19 @@ final class Prefs {
     static String bgKind(Context c) { return of(c).getString(BG_KIND, "gradient"); }
     static int bgDim(Context c) { return of(c).getInt(BG_DIM, 40); }
     static int bgBlur(Context c) { return of(c).getInt(BG_BLUR, 30); }
+    static int bgSlideMinutes(Context c) {
+        int m = of(c).getInt(BG_SLIDE_MINUTES, 15);
+        for (int k : BG_SLIDE_CHOICES) if (k == m) return m;
+        return 15;
+    }
+    /** The themes the background slideshow picks from; all of THEMES when none are chosen. */
+    static java.util.List<String> bgSlideThemes(Context c) {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        String csv = of(c).getString(BG_SLIDE_THEMES, "");
+        for (String t : THEMES) if (("," + csv + ",").contains("," + t + ",")) out.add(t);
+        if (out.isEmpty()) out.addAll(java.util.Arrays.asList(THEMES));
+        return out;
+    }
     static int lookRev(Context c) { return of(c).getInt(LOOK_REV, 0); }
     static void bumpLook(Context c) { of(c).edit().putInt(LOOK_REV, lookRev(c) + 1).apply(); }
 
