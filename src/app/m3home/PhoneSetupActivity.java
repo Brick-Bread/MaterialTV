@@ -73,6 +73,7 @@ public class PhoneSetupActivity extends Activity {
                 16, M3.ON_SURFACE_VAR, M3.REGULAR);
         intro.setPadding(0, dp(8), 0, dp(16));
         column.addView(intro);
+        checkForUpdate();
 
         LinearLayout tvCard = card();
         tvCard.addView(text("Fire TV address", 14, M3.PRIMARY, M3.MEDIUM));
@@ -192,7 +193,7 @@ public class PhoneSetupActivity extends Activity {
         else say("Without the camera, type the TV's address instead (it's shown on the TV).", M3.ON_SURFACE_VAR);
     }
 
-    /** Accepts the TV's code (setup.html?tv=…&c=… or m3home://setup?…) and connects straight away. */
+    /** Accepts the TV's code (setup.html?tv=…&c=… or m3home://setup?…), fills in the address and waits for "Set up". */
     private void scanned(String text) {
         Uri u;
         try { u = Uri.parse(text.trim()); } catch (RuntimeException e) { u = null; }
@@ -219,8 +220,10 @@ public class PhoneSetupActivity extends Activity {
         tv.setText(t);
         showTv(t);
         if (c != null && CODE.matcher(c).matches()) where.setText("The TV shows the pairing code " + c + ".");
-        say("Found the TV at " + t + ".", M3.PRIMARY);
-        start(); // connect right away
+        say("Found the TV at " + t + ". Choose what to " + (undo ? "undo" : "set up") + " below, then press "
+                + (undo ? "Undo now" : "Set up") + ".", M3.PRIMARY);
+        // Don't start by itself: the options must be the user's choice. Bring them into view instead.
+        scroll.post(() -> scroll.smoothScrollTo(0, Math.max(0, go.getTop() - scroll.getHeight() / 2)));
     }
 
     @Override
@@ -280,6 +283,57 @@ public class PhoneSetupActivity extends Activity {
     // ---- building blocks --------------------------------------------------------------------
 
     private interface BoolSet { void set(boolean v); }
+
+    // ---- updates from GitHub (same releases as the TV) ----------------------------------
+
+    private LinearLayout updateCard;
+
+    /** Asks GitHub for a newer MaterialTV each time the phone screen opens; shows a card if there is one. */
+    private void checkForUpdate() {
+        final android.content.Context app = getApplicationContext();
+        new Thread(() -> {
+            Updater.check(app);
+            final String v = Updater.available(app);
+            if (v != null) runOnUiThread(() -> showUpdate(v));
+        }, "m3home-phone-update").start();
+    }
+
+    private void showUpdate(String version) {
+        if (isFinishing() || updateCard != null) return;
+        updateCard = new LinearLayout(this);
+        updateCard.setOrientation(LinearLayout.VERTICAL);
+        updateCard.setPadding(dp(18), dp(16), dp(18), dp(16));
+        updateCard.setBackground(M3.rounded(M3.PRIMARY_CONT, dp(20)));
+        updateCard.addView(text("Update available: " + version, 17, M3.ON_PRIMARY_CONT, M3.MEDIUM));
+        final TextView status = text("You have " + Updater.installedVersion(this) + ". Update so the phone setup matches the latest TV app.",
+                14, M3.ON_PRIMARY_CONT, M3.REGULAR);
+        status.setPadding(0, dp(4), 0, dp(12));
+        updateCard.addView(status);
+        final TextView btn = text("Update now", 16, M3.ON_PRIMARY, M3.MEDIUM);
+        btn.setGravity(Gravity.CENTER);
+        btn.setBackground(M3.rounded(M3.PRIMARY, dp(24)));
+        btn.setOnClickListener(v -> {
+            if (android.os.Build.VERSION.SDK_INT >= 26 && !getPackageManager().canRequestPackageInstalls()) {
+                status.setText("Allow MaterialTV to install apps (the switch on the next screen), then come back and press Update now.");
+                try {
+                    startActivity(new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                            Uri.parse("package:" + getPackageName())));
+                } catch (RuntimeException ignored) { }
+                return;
+            }
+            btn.setEnabled(false);
+            status.setText("Downloading " + version + "…");
+            final android.content.Context app = getApplicationContext();
+            new Thread(() -> Updater.install(app, msg -> runOnUiThread(() -> {
+                status.setText(msg);
+                btn.setEnabled(true);
+            })), "m3home-phone-install").start();
+        });
+        updateCard.addView(btn, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48)));
+        LinearLayout.LayoutParams lp = matchWrap();
+        lp.bottomMargin = dp(16);
+        column.addView(updateCard, Math.min(3, column.getChildCount()), lp);
+    }
 
     private TextView text(String s, float sp, int color, Typeface face) {
         TextView t = new TextView(this);
