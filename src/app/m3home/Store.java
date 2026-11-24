@@ -55,7 +55,15 @@ final class Store {
     private Store() {}
 
     static final String CATALOG_URL = "https://brick-bread.github.io/MaterialTV/store.json";
+    /**
+     * The latest version, download link and size of every catalog app, worked out once a day by a
+     * GitHub Action (.github/workflows/store-resolve.yml) and served by GitHub Pages. TVs read this
+     * instead of asking api.github.com, which allows only 60 requests an hour per home connection.
+     */
+    static final String RESOLVED_URL = "https://brick-bread.github.io/MaterialTV/store-resolved.json";
     private static final String CACHE = "store.json", RELEASES = "store-releases.json", ICONS = "store-icons";
+    private static final String RESOLVED = "store-resolved.json", GITHUB = "store-github.json", GENERATED = "~generated";
+    private static final long GITHUB_TTL_MS = 12 * 3600_000L;
     private static final String LAST_REFRESH = "store_last_refresh", LEARNED = "store_pkg:";
     private static final long DAY_MS = 24 * 3600_000L;
     private static final long MAX_APK = 300L * 1024 * 1024, MAX_TEXT = 1_000_000, MAX_ICON = 512 * 1024;
@@ -118,6 +126,7 @@ final class Store {
     private static final Map<String, String> status = new ConcurrentHashMap<>();   // id -> "42%", "Confirm on screen"
     private static final Map<String, String> problems = new ConcurrentHashMap<>(); // id -> what went wrong last time
     private static volatile List<Entry> catalog;
+    private static volatile JSONObject resolved; // id -> {version, url, size, asset}
     private static volatile Listener listener;
     private static volatile boolean refreshing;
 
@@ -441,29 +450,58 @@ final class Store {
                 write(new File(c.getFilesDir(), CACHE), body.getBytes("UTF-8"));
                 catalog = fresh;
             }
-            int found = 0;
+            String why = got ? null : lastProblem(CATALOG_URL);
+            String rbody = http(RESOLVED_URL, null);
+            if (parseResolved(rbody) != null) {
+                write(new File(c.getFilesDir(), RESOLVED), rbody.getBytes("UTF-8"));
+                resolved = null; // re-pick between this and the bundled copy
+            }
+            int found = 0, repos = 0;
+            String ghWhy = null;
             for (Entry e : all(c)) {
-                if (e.repo != null && resolve(c, e) != null) found++;
+                if (e.repo != null) {
+                    repos++;
+                    clearProblem();
+                    if (resolve(c, e) != null) found++;
+                    else if (ghWhy == null && hadProblem()) ghWhy = lastProblem(null);
+                }
                 fetchIcon(c, e);
             }
             WebApps.refreshAll(c); // installed web apps: re-read their manifests
             changed(null);
-            return got ? "App store refreshed · " + catalog(c).size() + " apps" + (found > 0 ? "" : " (GitHub didn't answer)")
-                    : "Couldn't reach the app store. Showing the last list.";
+            if (!got) return "Couldn't reach the app store: " + why + " Showing the last list.";
+            return "App store refreshed · " + catalog(c).size() + " apps"
+                    + (repos > 0 && found == 0 ? ". GitHub didn't answer: " + (ghWhy == null ? "no downloads found." : ghWhy) : "");
         } catch (Exception e) {
-            return "Couldn't refresh the app store.";
+            return "Couldn't refresh the app store: " + Net.explain(0, e);
         } finally {
             refreshing = false;
         }
     }
 
-    /** The download for an app: {version, url, size}. Asks GitHub for a repo. Off the main thread. */
+    /**
+     * The download for an app: {version, url, size}. Catalog apps come from store-resolved.json (no
+     * api.github.com call); only a repo missing from it (your own apps, or one added since the
+     * last Action run) asks GitHub, at most every 12 hours per repo. Off the main thread.
+     */
     private static JSONObject resolve(Context c, Entry e) throws org.json.JSONException {
         if (e.appstore()) return null;
-        if (e.repo == null) return new JSONObject().put("version", e.version == null ? "" : e.version).put("url", e.url).put("size", -1);
-        String body = http("https://api.github.com/repos/" + e.repo + "/releases/latest", "application/vnd.github+json");
-        if (body == null) return null;
-        JSONObject release = new JSONObject(body);
+        if (e.repo == null) { // a fixed link: the catalog's version, the resolved file's size if it's the same link
+            JSONObject known = e.custom ? null : resolved(c).optJSONObject(e.id);
+            long size = known != null && e.url.equals(known.optString("url")) ? known.optLong("size", -1) : -1;
+            JSONObject r = new JSONObject().put("version", e.version == null ? "" : e.version).put("url", e.url).put("size", size);
+            if (size > 0) remember(c, e.id, r);
+            return r;
+        }
+        JSONObject known = e.custom ? null : resolved(c).optJSONObject(e.id);
+        if (known != null && e.repo.equals(known.optString("repo")) && httpsOk(known.optString("url"))) {
+            JSONObject r = new JSONObject().put("version", known.optString("version", ""))
+                    .put("url", known.optString("url")).put("size", known.optLong("size", -1));
+            remember(c, e.id, r);
+            return r;
+        }
+        JSONObject release = githubRelease(c, e.repo);
+        if (release == null) return null;
         JSONArray assets = release.optJSONArray("assets");
         Pattern want = e.assetRegex == null ? null : Pattern.compile(e.assetRegex);
         JSONObject best = null;
@@ -481,12 +519,125 @@ final class Store {
         if (!httpsOk(url)) return null;
         JSONObject r = new JSONObject().put("version", release.optString("tag_name", ""))
                 .put("url", url).put("size", best.optLong("size", -1));
+        remember(c, e.id, r);
+        return r;
+    }
+
+    /** Keeps an app's {version, url, size} for the row (store-releases.json). */
+    private static void remember(Context c, String id, JSONObject r) throws org.json.JSONException {
         synchronized (Store.class) {
             JSONObject all = releases(c);
-            all.put(e.id, r);
+            JSONObject old = all.optJSONObject(id);
+            if (old != null && old.toString().equals(r.toString())) return;
+            all.put(id, r);
             write(new File(c.getFilesDir(), RELEASES), all.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
         }
+    }
+
+    /** store-resolved.json by app id: the newer of the downloaded copy and the one in the APK. */
+    private static JSONObject resolved(Context c) {
+        JSONObject r = resolved;
+        if (r != null) return r;
+        JSONObject cached = parseResolved(read(new File(c.getFilesDir(), RESOLVED))), bundled = null;
+        try (InputStream in = c.getAssets().open(RESOLVED)) {
+            bundled = parseResolved(readAll(in));
+        } catch (IOException ignored) {
+            // No bundled copy.
+        }
+        if (cached == null) r = bundled;
+        else if (bundled == null) r = cached;
+        else r = bundled.optString(GENERATED).compareTo(cached.optString(GENERATED)) > 0 ? bundled : cached;
+        if (r == null) r = new JSONObject();
+        resolved = r;
         return r;
+    }
+
+    /** {"generated", "apps": [{id, repo?, version, url, size, asset}]} as id -> entry; null if it isn't one. */
+    private static JSONObject parseResolved(String body) {
+        if (body == null) return null;
+        try {
+            JSONObject doc = new JSONObject(body);
+            JSONArray a = doc.getJSONArray("apps");
+            JSONObject out = new JSONObject().put(GENERATED, doc.optString("generated", ""));
+            for (int i = 0; i < a.length() && i < 200; i++) {
+                JSONObject o = a.optJSONObject(i);
+                if (o != null && ID.matcher(o.optString("id")).matches()) out.put(o.optString("id"), o);
+            }
+            return out;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * A repo's latest release {tag_name, assets: [{name, browser_download_url, size}]}, for repos
+     * store-resolved.json doesn't cover. Remembered for 12 hours. After that, github.com's
+     * /releases/latest redirect (a web page, not the rate-limited API) gives the tag, and the API
+     * is asked only when the tag has changed. Off the main thread.
+     */
+    private static JSONObject githubRelease(Context c, String repo) {
+        File f = new File(c.getFilesDir(), GITHUB);
+        JSONObject old = readJson(f).optJSONObject(repo);
+        long now = System.currentTimeMillis();
+        if (old != null && Math.abs(now - old.optLong("time")) < GITHUB_TTL_MS) return old;
+        try {
+            JSONObject release;
+            String tag = latestTag(repo);
+            if (old != null && tag != null && tag.equals(old.optString("tag_name"))) {
+                release = old;
+            } else {
+                String body = http("https://api.github.com/repos/" + repo + "/releases/latest", "application/vnd.github+json");
+                if (body == null) return old; // offline or limited: the last answer beats none
+                JSONObject full = new JSONObject(body);
+                JSONArray assets = new JSONArray(), all = full.optJSONArray("assets");
+                for (int i = 0; all != null && i < all.length() && i < 100; i++) {
+                    JSONObject a = all.getJSONObject(i);
+                    assets.put(new JSONObject().put("name", a.optString("name"))
+                            .put("browser_download_url", a.optString("browser_download_url")).put("size", a.optLong("size", -1)));
+                }
+                release = new JSONObject().put("tag_name", full.optString("tag_name", "")).put("assets", assets);
+            }
+            release.put("time", now);
+            synchronized (Store.class) {
+                JSONObject cache = readJson(f);
+                cache.put(repo, release);
+                write(f, cache.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            }
+            return release;
+        } catch (org.json.JSONException x) {
+            return old;
+        }
+    }
+
+    private static JSONObject readJson(File f) {
+        try {
+            String s = read(f);
+            return s == null ? new JSONObject() : new JSONObject(s);
+        } catch (Exception e) {
+            return new JSONObject();
+        }
+    }
+
+    /** The latest release's tag, from github.com/<repo>/releases/latest's redirect; null if unknown. No API call. */
+    private static String latestTag(String repo) {
+        HttpURLConnection con = null;
+        try {
+            con = (HttpURLConnection) new URL("https://github.com/" + repo + "/releases/latest").openConnection();
+            con.setInstanceFollowRedirects(false);
+            con.setRequestMethod("HEAD");
+            con.setConnectTimeout(10_000);
+            con.setReadTimeout(15_000);
+            con.setRequestProperty("User-Agent", "M3Home-Store");
+            int code = con.getResponseCode();
+            String to = con.getHeaderField("Location");
+            if (code < 300 || code >= 400 || to == null) return null;
+            int at = to.lastIndexOf("/releases/tag/");
+            return at < 0 ? null : Uri.decode(to.substring(at + "/releases/tag/".length()));
+        } catch (Exception x) {
+            return null;
+        } finally {
+            if (con != null) con.disconnect();
+        }
     }
 
     /** Fire TV sticks are 32-bit ARM: prefer armeabi-v7a, then universal; never arm64 or x86. */
@@ -622,8 +773,9 @@ final class Store {
     }
 
     private static String doInstall(Context c, Entry e) throws Exception {
+        clearProblem();
         JSONObject r = resolve(c, e);
-        if (r == null) return "Couldn't find a download for this Fire TV";
+        if (r == null) return hadProblem() ? "Couldn't reach GitHub: " + lastProblem(null) : "Couldn't find a download for this Fire TV";
         File dir = new File(c.getCacheDir(), "store");
         dir.mkdirs();
         File[] old = dir.listFiles();
@@ -632,7 +784,7 @@ final class Store {
         try {
             status.put(e.id, "0%");
             changed(e.id);
-            if (!download(r.getString("url"), apk, e.id)) return "The download failed";
+            if (!download(r.getString("url"), apk, e.id)) return "The download failed" + (hadProblem() ? ": " + lastProblem(r.getString("url")) : "");
             status.put(e.id, "Checking…");
             changed(e.id);
             PackageInfo info = c.getPackageManager().getPackageArchiveInfo(apk.getPath(), 0);
@@ -775,7 +927,29 @@ final class Store {
         }
     }
 
+    // This thread's last HTTP status and exception, so a failure can say why (Net.explain).
+    private static final ThreadLocal<Integer> lastCode = new ThreadLocal<>();
+    private static final ThreadLocal<Throwable> lastError = new ThreadLocal<>();
+
+    private static void clearProblem() { lastCode.remove(); lastError.remove(); }
+
+    private static boolean hadProblem() {
+        Integer code = lastCode.get();
+        return lastError.get() != null || (code != null && code != 200);
+    }
+
+    /** Why this thread's last request failed, in plain English; url names the site (null: GitHub). */
+    static String lastProblem(String url) {
+        Integer code = lastCode.get();
+        return Net.explain(code == null ? 0 : code, lastError.get(), url);
+    }
+
+    private static void failed(Exception e) {
+        if (!(e instanceof IOException && String.valueOf(e.getMessage()).startsWith("HTTP "))) lastError.set(e);
+    }
+
     private static HttpURLConnection connect(String url, String accept) throws IOException {
+        clearProblem();
         for (int hops = 0; hops < 6; hops++) {
             if (!url.startsWith("https://")) throw new IOException("not https");
             HttpURLConnection con = (HttpURLConnection) new URL(url).openConnection();
@@ -785,6 +959,7 @@ final class Store {
             con.setRequestProperty("User-Agent", "M3Home-Store");
             if (accept != null) con.setRequestProperty("Accept", accept);
             int code = con.getResponseCode();
+            lastCode.set(code);
             if (code >= 300 && code < 400) {
                 String to = con.getHeaderField("Location");
                 con.disconnect();
@@ -824,6 +999,7 @@ final class Store {
                 return out.toByteArray();
             }
         } catch (Exception e) {
+            failed(e);
             return null;
         } finally {
             if (con != null) con.disconnect();
@@ -853,6 +1029,7 @@ final class Store {
             }
             return total <= 0 || got == total;
         } catch (Exception e) {
+            failed(e);
             return false;
         } finally {
             if (con != null) con.disconnect();
