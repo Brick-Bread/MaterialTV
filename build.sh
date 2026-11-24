@@ -26,7 +26,7 @@ mkdir -p build/gen build/classes build/dex
 echo "resources"
 "$AAPT2" compile --dir res -o build/res.zip
 "$AAPT2" link -o build/unsigned.apk -I "$JAR" \
-  --manifest AndroidManifest.xml -A assets \
+  --manifest AndroidManifest.xml \
   --min-sdk-version "$MIN_SDK" --target-sdk-version "$MIN_SDK" \
   --version-code "$VERSION_CODE" --version-name "$VERSION_NAME" \
   --java build/gen build/res.zip
@@ -47,6 +47,9 @@ java -cp "$BT/lib/d8.jar" com.android.tools.r8.D8 \
 echo "package"
 cp build/unsigned.apk build/with-dex.apk
 jar uf build/with-dex.apk -C build/dex classes.dex
+# Assets go in with jar, not aapt2 -A: on Windows aapt2 stores them with backslashes
+# (assets/fonts\x.ttf), which Android can't find. jar always writes forward slashes.
+jar uf build/with-dex.apk assets
 "$ZIPALIGN" -f -p 4 build/with-dex.apk build/aligned.apk
 
 # Your signing key. Keep m3home.keystore and keystore.properties safe and private (both are
