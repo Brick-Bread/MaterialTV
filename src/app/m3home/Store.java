@@ -81,9 +81,13 @@ final class Store {
 
         boolean appstore() { return "appstore".equals(type); }
 
+        /** A MaterialTV web app: url is its manifest (see WebApps). */
+        boolean webapp() { return "webapp".equals(type); }
+
         /** "github.com/owner/name", "videolan.org", "Amazon Appstore". */
         String source() {
             if (appstore()) return "Amazon Appstore";
+            if (webapp()) { try { return "web app at " + new URI(url).getHost(); } catch (Exception e) { return "the web"; } }
             if (repo != null) return "github.com/" + repo;
             try { return new URI(url).getHost(); } catch (Exception e) { return "the web"; }
         }
@@ -176,6 +180,11 @@ final class Store {
                 String pkg = o.optString("package", src.optString("package"));
                 String type = src.optString("type");
                 if (!ID.matcher(id).matches() || ids.contains(id) || name.isEmpty() || name.length() > MAX_NAME) continue;
+                if (type.equals("webapp")) { // web apps have no package: see the web apps section
+                    Entry w = webappEntry(id, name, o, src.optString("manifest"), false);
+                    if (w != null) { ids.add(id); out.add(w); }
+                    continue;
+                }
                 if (!PKG.matcher(pkg).matches()) continue;
                 String icon = o.optString("icon_url", "");
                 if (!icon.isEmpty() && !httpsOk(icon)) icon = "";
@@ -214,6 +223,11 @@ final class Store {
                 JSONObject o = a.getJSONObject(i);
                 String id = o.optString("id"), name = o.optString("name"), repo = o.optString("repo", ""), url = o.optString("url", "");
                 if (!id.matches("c[0-9a-f]{12}") || name.isEmpty()) continue;
+                if (o.has("manifest")) { // a web app's manifest link
+                    Entry w = webappEntry(id, name, null, o.optString("manifest"), true);
+                    if (w != null) out.add(w);
+                    continue;
+                }
                 boolean gh = !repo.isEmpty();
                 out.add(new Entry(id, name, learned(c, id), "Added by you", "Your apps", null,
                         gh ? "github" : "url", gh ? repo : null, null, gh ? null : url, null, true));
@@ -229,7 +243,8 @@ final class Store {
         JSONArray out = new JSONArray();
         for (Entry e : custom(c)) {
             JSONObject o = new JSONObject().put("id", e.id).put("name", e.name);
-            if (e.repo != null) o.put("repo", e.repo); else o.put("url", e.url);
+            if (e.webapp()) o.put("manifest", e.url);
+            else if (e.repo != null) o.put("repo", e.repo); else o.put("url", e.url);
             o.put("pkg", e.pkg == null ? "" : e.pkg);
             out.put(o);
         }
@@ -253,7 +268,12 @@ final class Store {
                 String repo = o.optString("repo", "").trim(), url = o.optString("url", "").trim();
                 if (repo.startsWith("https://github.com/")) repo = repo.substring(19).replaceAll("/+$", "");
                 JSONObject n = new JSONObject();
-                if (!repo.isEmpty() && url.isEmpty()) {
+                String manifest = o.optString("manifest", "").trim();
+                if (!manifest.isEmpty()) { // a MaterialTV web app
+                    if (!repo.isEmpty() || !url.isEmpty()) return "give each app one link";
+                    if (!httpsOk(manifest)) return "web app manifests must start with https:// (up to " + MAX_URL + " characters)";
+                    n.put("manifest", manifest);
+                } else if (!repo.isEmpty() && url.isEmpty()) {
                     if (!REPO.matcher(repo).matches()) return "\"" + repo + "\" isn't a GitHub repo (owner/name)";
                     n.put("repo", repo);
                 } else if (repo.isEmpty() && !url.isEmpty()) {
@@ -312,6 +332,7 @@ final class Store {
         JSONObject rel = releases(c);
         List<Item> out = new ArrayList<>();
         for (Entry e : all(c)) {
+            if (e.webapp()) { out.add(webappItem(c, e)); continue; }
             String installed = null;
             if (e.pkg != null) {
                 try {
@@ -389,6 +410,7 @@ final class Store {
                 if (e.repo != null && resolve(c, e) != null) found++;
                 fetchIcon(c, e);
             }
+            WebApps.refreshAll(c); // installed web apps: re-read their manifests
             changed(null);
             return got ? "App store refreshed · " + catalog(c).size() + " apps" + (found > 0 ? "" : " (GitHub didn't answer)")
                     : "Couldn't reach the app store. Showing the last list.";
@@ -512,6 +534,7 @@ final class Store {
     /** Opens an installed app. False if it can't be opened. */
     static boolean open(Context c, String pkg) {
         if (pkg == null) return false;
+        if (WebApps.idOf(pkg) != null) return openWebapp(c, WebApps.idOf(pkg));
         PackageManager pm = c.getPackageManager();
         Intent i = pm.getLeanbackLaunchIntentForPackage(pkg);
         if (i == null) i = pm.getLaunchIntentForPackage(pkg);
@@ -541,6 +564,7 @@ final class Store {
 
     /** Downloads, checks and hands the app to Android's installer, in the background. Progress goes to the listener. */
     static void install(Context c, Entry e) {
+        if (e.webapp()) { installWebapp(c, e); return; }
         if (e.appstore() || busy(e.id)) return;
         final Context app = c.getApplicationContext();
         problems.remove(e.id);
@@ -632,6 +656,76 @@ final class Store {
             changed(id);
         }
     }
+
+    // ---- web apps (MaterialTV web apps; the apps themselves live in WebApps) ------------------------
+    // A store.json entry {"source": {"type": "webapp", "manifest": "https://…/manifest.json"}}, or one
+    // of your own apps with a "manifest" link. Installed ones stay in the row, as Installed, with Open.
+
+    /** A web app entry; null unless the manifest link is https. */
+    private static Entry webappEntry(String id, String name, JSONObject o, String manifest, boolean custom) {
+        if (!httpsOk(manifest)) return null;
+        String icon = o == null ? "" : o.optString("icon_url", "");
+        if (!icon.isEmpty() && !httpsOk(icon)) icon = "";
+        return new Entry(id, name, null, o == null ? "Added by you" : clip(o.optString("description"), 160),
+                o == null ? "Your apps" : clip(o.optString("category"), 30), icon.isEmpty() ? null : icon,
+                "webapp", null, null, manifest, null, custom);
+    }
+
+    /** How the row shows a web app: Get, or Installed (opens it). */
+    private static Item webappItem(Context c, Entry e) {
+        WebApps.App app = WebApps.byManifest(c, e.url);
+        Bitmap icon = icon(c, e.id);
+        if (icon == null && app != null) {
+            android.graphics.drawable.Drawable d = WebApps.icon(c, app);
+            if (d instanceof BitmapDrawable) icon = ((BitmapDrawable) d).getBitmap();
+        }
+        int tint = icon != null ? M3.containerFor(new BitmapDrawable(c.getResources(), icon)) : 0;
+        if (icon == null || tint == M3.SURFACE_HIGH) {
+            float hue = (e.id.hashCode() & 0x7FFFFFFF) % 360;
+            tint = Color.HSVToColor(new float[] { hue, 0.42f, 0.30f });
+        }
+        return new Item(e, app == null ? GET : INSTALLED, app == null ? null : app.pkg(),
+                app == null ? null : app.version, -1, icon, tint);
+    }
+
+    /** Fetches and checks the manifest, then adds the app to All apps. No APK, no Android prompt. */
+    private static void installWebapp(Context c, Entry e) {
+        if (busy(e.id)) return;
+        final Context app = c.getApplicationContext();
+        problems.remove(e.id);
+        status.put(e.id, "Installing…");
+        changed(e.id);
+        jobs.execute(() -> {
+            String problem;
+            try {
+                problem = WebApps.install(app, e.url);
+            } catch (Exception x) {
+                problem = "Install failed";
+            }
+            status.remove(e.id);
+            final String p = problem;
+            if (p != null) problems.put(e.id, p); else problems.remove(e.id);
+            main.post(() -> Toast.makeText(app, p == null ? e.name + " is installed" : e.name + ": " + p,
+                    p == null ? Toast.LENGTH_SHORT : Toast.LENGTH_LONG).show());
+            changed(e.id);
+            changed(null); // reload the row and All apps
+        });
+    }
+
+    private static boolean openWebapp(Context c, String id) {
+        if (WebApps.get(c, id) == null) return false;
+        try {
+            c.startActivity(WebApps.launchIntent(c, id));
+            return true;
+        } catch (ActivityNotFoundException | SecurityException e) {
+            return false;
+        }
+    }
+
+    /** https-only text and bytes for WebApps (manifests, icons). Off the main thread. */
+    static String fetchText(String url) { return http(url, "application/json"); }
+
+    static byte[] fetchBytes(String url, long max) { return bytes(url, max); }
 
     // ---- network (https only, redirects followed by hand so they can't drop to http) ------------
 

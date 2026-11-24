@@ -95,6 +95,19 @@
             android:screenOrientation="landscape"
             android:exported="false" />
 
+        <!-- MaterialTV web apps (docs/apps.md): a full-screen WebView in its own process, so its
+             web data stays apart and all of it ends when you leave the app. -->
+        <activity
+            android:name=".WebAppActivity"
+            android:theme="@style/M3Home"
+            android:process=":webapp"
+            android:launchMode="singleTask"
+            android:taskAffinity="app.m3home.webapp"
+            android:excludeFromRecents="true"
+            android:screenOrientation="landscape"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode"
+            android:exported="false" />
+
         <receiver android:name=".Updater$Result" android:exported="false" />
         <!-- The app store's installs: opens Android's confirm screen and reports the result. -->
         <receiver android:name=".Store$Result" android:exported="false" />

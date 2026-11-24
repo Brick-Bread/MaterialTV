@@ -82,6 +82,11 @@
     { "id": "tailscale", "name": "Tailscale", "package": "com.tailscale.ipn", "category": "Tools",
       "icon_url": "https://brick-bread.github.io/MaterialTV/store-icons/tailscale.png",
       "description": "Private network to your own devices (about 100 MB)",
-      "source": { "type": "github", "repo": "tailscale/tailscale-android", "asset_regex": "^tailscale-android-universal-.*\\.apk$" } }
+      "source": { "type": "github", "repo": "tailscale/tailscale-android", "asset_regex": "^tailscale-android-universal-.*\\.apk$" } },
+
+    { "id": "hello-tv", "name": "Hello TV", "category": "Made for MaterialTV",
+      "description": "Sample web app: a clock and a remote-friendly grid. Make your own: brick-bread.github.io/MaterialTV/apps",
+      "icon_url": "https://brick-bread.github.io/MaterialTV/apps/sample/icon.png",
+      "source": { "type": "webapp", "manifest": "https://brick-bread.github.io/MaterialTV/apps/sample/manifest.json" } }
   ]
 }

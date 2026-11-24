@@ -32,8 +32,14 @@ final class Apps {
         final Drawable icon;   // the sharpest icon the app ships (xxxhdpi when it has one)
         final int tint;        // tonal card colour taken from the icon
         final Bitmap art;      // the user's own tile picture, or null
+        final String webId;    // a MaterialTV web app's id (pkg is "webapp:<id>"), else null
 
         App(String pkg, String label, ComponentName component, boolean leanback, Drawable icon, Bitmap art) {
+            this(pkg, label, component, leanback, icon, art, null);
+        }
+
+        App(String pkg, String label, ComponentName component, boolean leanback, Drawable icon, Bitmap art, String webId) {
+            this.webId = webId;
             this.pkg = pkg;
             this.label = label;
             this.component = component;
@@ -81,6 +87,11 @@ final class Apps {
         Map<String, App> byPkg = new LinkedHashMap<>();
         collect(pm, byPkg, Intent.CATEGORY_LEANBACK_LAUNCHER, true);
         collect(pm, byPkg, Intent.CATEGORY_LAUNCHER, false);
+        // Installed MaterialTV web apps join the list as "webapp:<id>" (see WebApps).
+        for (WebApps.App w : WebApps.installed(context)) {
+            byPkg.put(w.pkg(), new App(w.pkg(), w.name, new ComponentName(context, WebAppActivity.class), false,
+                    WebApps.icon(context, w), loadArt(w.pkg()), w.id));
+        }
         List<App> list = new ArrayList<>(byPkg.values());
         final Collator collator = Collator.getInstance();
         Collections.sort(list, (a, b) -> collator.compare(a.label, b.label));
@@ -206,6 +217,7 @@ final class Apps {
                 byPkg.put(ai.packageName, label == null ? ai.packageName : label.toString());
             }
         }
+        for (WebApps.App w : WebApps.installed(context)) byPkg.put(w.pkg(), w.name); // web apps too
         List<String[]> out = new ArrayList<>();
         for (Map.Entry<String, String> e : byPkg.entrySet()) out.add(new String[] { e.getKey(), e.getValue() });
         final Collator collator = Collator.getInstance();
