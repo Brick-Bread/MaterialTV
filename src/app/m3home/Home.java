@@ -827,6 +827,24 @@ public class Home extends Activity {
         }
         LinearLayout tile = cardTile(STORE_TAG + e.id, e.name, item.tint, icon, null, recentTileDp, ROW_STORE);
         FrameLayout card = (FrameLayout) tile.getChildAt(0);
+        if (item.icon != null) {
+            // Store icons are full-bleed circles: grow the picture to fill the whole circular icon
+            // well (the plate cardTile adds just before it) and clip it round, instead of drawing it
+            // small inside the well. Normal app tiles are untouched.
+            View plate = card.getChildAt(card.indexOfChild(icon) - 1);
+            FrameLayout.LayoutParams plp = (FrameLayout.LayoutParams) plate.getLayoutParams();
+            FrameLayout.LayoutParams ilp = (FrameLayout.LayoutParams) icon.getLayoutParams();
+            ilp.width = ilp.height = plp.width;
+            ilp.topMargin = plp.topMargin;
+            icon.setLayoutParams(ilp);
+            ((ImageView) icon).setScaleType(ImageView.ScaleType.CENTER_CROP);
+            icon.setOutlineProvider(new android.view.ViewOutlineProvider() {
+                @Override public void getOutline(View v, android.graphics.Outline o) {
+                    o.setOval(0, 0, v.getWidth(), v.getHeight());
+                }
+            });
+            icon.setClipToOutline(true);
+        }
         TextView badge = new TextView(this);
         style(badge, 13, M3.ON_PRIMARY, M3.MEDIUM);
         badge.setPadding(dp(10), dp(3), dp(10), dp(4));
@@ -915,6 +933,8 @@ public class Home extends Activity {
             actions.add(() -> {
                 if (!Store.open(this, item.pkg)) Toast.makeText(this, "Couldn't open " + e.name, Toast.LENGTH_SHORT).show();
             });
+            labels.add("Uninstall");
+            actions.add(() -> uninstall(item.pkg, e.name));
         }
         if (e.custom) {
             labels.add("Remove from your apps");
@@ -1253,6 +1273,10 @@ public class Home extends Activity {
         }
         labels.add("Change tile picture");
         actions.add(() -> pickTileArt(app));
+        if (!app.pkg.equals(getPackageName())) {
+            labels.add("Uninstall");
+            actions.add(() -> uninstall(app.pkg, app.label));
+        }
         labels.add("App info");
         actions.add(() -> {
             try {
@@ -1264,6 +1288,15 @@ public class Home extends Activity {
         });
 
         M3Menu.show(this, app.label, labels, which -> actions.get(which).run());
+    }
+
+    /** Asks Android to uninstall an app (it shows its own "Do you want to uninstall?" confirm). */
+    private void uninstall(String pkg, CharSequence label) {
+        try {
+            startActivity(new Intent(Intent.ACTION_DELETE, Uri.parse("package:" + pkg)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        } catch (ActivityNotFoundException e) {
+            Toast.makeText(this, "Couldn't uninstall " + label + ". Try App info", Toast.LENGTH_SHORT).show();
+        }
     }
 
     /** The grid tile after (or else before) pkg, so focus stays put when pkg is hidden. */

@@ -11,6 +11,7 @@
          site your phone opens from the QR code (runs only while that screen is open). -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Installing updates from GitHub Releases; Android still asks you to confirm each one. -->
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!-- Phone mode only: scanning the TV's setup QR code. Asked for when you tap Scan. -->
