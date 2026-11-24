@@ -94,6 +94,9 @@ public class Home extends Activity {
     private final List<LinearLayout> pluginSections = new ArrayList<>(), pluginRows = new ArrayList<>();
     private Plugins.Snapshot plugins = new Plugins.Snapshot();
     private LinearLayout pluginChips;
+    private LinearLayout wxChip;
+    private ImageView wxIcon;
+    private TextView wxText;
     private int pluginFocus;
     private static final String PLUGIN_TAG = "m3home:plugin:";
 
@@ -131,7 +134,7 @@ public class Home extends Activity {
     };
 
     private final BroadcastReceiver timeReceiver = new BroadcastReceiver() {
-        @Override public void onReceive(Context c, Intent i) { updateClock(); }
+        @Override public void onReceive(Context c, Intent i) { updateClock(); renderWeather(); }
     };
 
     private final BroadcastReceiver packageReceiver = new BroadcastReceiver() {
@@ -207,7 +210,8 @@ public class Home extends Activity {
         tf.addAction(Intent.ACTION_TIMEZONE_CHANGED);
         registerReceiver(timeReceiver, tf);
         updateClock();
-        if (Prefs.on(this, Prefs.W_WEATHER)) Weather.refreshIfStale(this, null); // warm for the screensaver
+        renderWeather();
+        if (Prefs.on(this, Prefs.W_WEATHER)) Weather.refreshIfStale(this, () -> ui.post(this::renderWeather));
         refreshUpdateCard();
         Updater.checkIfDue(this, () -> ui.post(this::refreshUpdateCard));
         if (order.contains(ROW_STORE)) Store.refreshIfDue(this);
@@ -479,6 +483,8 @@ public class Home extends Activity {
         style(date, 20, M3.ON_SURFACE_VAR, M3.REGULAR);
         shadow(date);
         date.setPadding(dp(18), 0, 0, 0);
+        date.setSingleLine(true); // never wrap under the header chips
+        date.setEllipsize(TextUtils.TruncateAt.END);
         timeLine.addView(clock);
         timeLine.addView(date);
         LinearLayout.LayoutParams tlLp = new LinearLayout.LayoutParams(
@@ -486,6 +492,25 @@ public class Home extends Activity {
         tlLp.topMargin = dp(2);
         left.addView(timeLine, tlLp);
         header.addView(left, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        // Weather chip (status only, not focusable): "6° Cloudy · H 7° L 3°". Hidden when off or unknown.
+        wxChip = new LinearLayout(this);
+        wxChip.setOrientation(LinearLayout.HORIZONTAL);
+        wxChip.setGravity(Gravity.CENTER_VERTICAL);
+        wxChip.setPadding(dp(14), 0, dp(18), 0);
+        wxChip.setBackground(M3.rounded(M3.SECONDARY_CONT, dp(22)));
+        wxIcon = new ImageView(this);
+        wxIcon.setColorFilter(M3.ON_SECONDARY_CONT);
+        wxChip.addView(wxIcon, new LinearLayout.LayoutParams(dp(20), dp(20)));
+        wxText = new TextView(this);
+        style(wxText, 15, M3.ON_SECONDARY_CONT, M3.MEDIUM);
+        wxText.setPadding(dp(10), 0, 0, 0);
+        wxChip.addView(wxText);
+        wxChip.setVisibility(View.GONE);
+        LinearLayout.LayoutParams wxLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(44));
+        wxLp.rightMargin = dp(14);
+        wxLp.bottomMargin = dp(8);
+        header.addView(wxChip, wxLp);
 
         // Plugin widgets: small status chips (not focusable), like the Tailscale one.
         pluginChips = new LinearLayout(this);
@@ -681,13 +706,18 @@ public class Home extends Activity {
      */
     private View tile(final Apps.App app, int widthDp, final int row) {
         View icon = null;
+        android.graphics.Bitmap round = null;
         if (app.art == null) {
             ImageView iv = new ImageView(this);
             iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            iv.setImageDrawable(app.icon);
+            // A tidy round version of the icon, sized to fill the tile's circle (see RoundIcon).
+            int well = Math.round(Math.round(dp(widthDp) * TILE_RATIO) * 0.56f);
+            round = RoundIcon.of(app.pkg, app.icon, well);
+            if (round != null) iv.setImageBitmap(round); else iv.setImageDrawable(app.icon);
             icon = iv;
         }
         final LinearLayout tile = cardTile(app.pkg, app.label, app.tint, icon, app.art, widthDp, row);
+        if (round != null) fillWell(icon);
         tile.setOnClickListener(v -> launch(app));
         tile.setOnLongClickListener(v -> { showOptions(app, row); return true; });
         tile.setOnKeyListener((v, code, ev) -> {
@@ -1108,6 +1138,17 @@ public class Home extends Activity {
         M3Menu.show(this, card.title, card.subtitle, labels, which -> actions.get(which).run());
     }
 
+    /** Shows the weather chip from the cached forecast (refreshed every 30 minutes elsewhere). */
+    private void renderWeather() {
+        if (wxChip == null) return;
+        Weather.Now w = Prefs.on(this, Prefs.W_WEATHER) ? Weather.current(this) : null;
+        if (w == null) { wxChip.setVisibility(View.GONE); return; }
+        wxIcon.setImageResource(Weather.icon(w.code, w.day));
+        wxText.setText(w.temp + "° " + Weather.describe(w.code));
+        wxChip.setVisibility(View.VISIBLE);
+        if (Prefs.on(this, Prefs.W_WEATHER)) Weather.refreshIfStale(this, () -> ui.post(this::renderWeather));
+    }
+
     /** The enabled plugins' widgets as status chips in the header (at most three). */
     private void renderPluginWidgets() {
         pluginChips.removeAllViews();
@@ -1520,6 +1561,20 @@ public class Home extends Activity {
         });
 
         M3Menu.show(this, app.label, labels, which -> actions.get(which).run());
+    }
+
+    /** Makes a tile's icon fill the whole circular well behind it (for icons already made round). */
+    private static void fillWell(View icon) {
+        if (!(icon.getParent() instanceof FrameLayout)) return;
+        FrameLayout card = (FrameLayout) icon.getParent();
+        int i = card.indexOfChild(icon);
+        if (i < 1) return;
+        View plate = card.getChildAt(i - 1);
+        FrameLayout.LayoutParams plp = (FrameLayout.LayoutParams) plate.getLayoutParams();
+        FrameLayout.LayoutParams ilp = (FrameLayout.LayoutParams) icon.getLayoutParams();
+        ilp.width = ilp.height = plp.width;
+        ilp.topMargin = plp.topMargin;
+        icon.setLayoutParams(ilp);
     }
 
     /** True for Left on a row's first tile or Right on its last: the remote should just stop there. */
