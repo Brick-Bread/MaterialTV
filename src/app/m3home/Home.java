@@ -818,7 +818,7 @@ public class Home extends Activity {
         String text;
         int fill = M3.PRIMARY, ink = M3.ON_PRIMARY;
         if (busy != null) text = busy;
-        else if (Store.problem(id) != null) { text = "Failed"; fill = M3.ERROR; ink = M3.BACKGROUND; }
+        else if (Store.problem(id) != null && !"Cancelled".equals(Store.problem(id))) { text = "Failed"; fill = M3.ERROR; ink = M3.BACKGROUND; }
         else if (item.state == Store.UPDATE) text = "Update";
         else if (item.state == Store.INSTALLED) { text = "Installed"; fill = M3.SECONDARY_CONT; ink = M3.ON_SECONDARY_CONT; }
         else text = "Get";
