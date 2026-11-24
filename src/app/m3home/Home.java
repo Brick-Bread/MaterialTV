@@ -296,6 +296,7 @@ public class Home extends Activity {
     /** While a favourite is picked up: Left/Right carry it, Select/Back/Up/Down put it down. */
     @Override
     public boolean dispatchKeyEvent(KeyEvent e) {
+        if (movingPkg == null && atRowEnd(e)) return true; // stop at the end of a row instead of jumping elsewhere
         if (movingPkg == null) return super.dispatchKeyEvent(e);
         int code = e.getKeyCode();
         boolean down = e.getAction() == KeyEvent.ACTION_DOWN;
@@ -1519,6 +1520,19 @@ public class Home extends Activity {
         });
 
         M3Menu.show(this, app.label, labels, which -> actions.get(which).run());
+    }
+
+    /** True for Left on a row's first tile or Right on its last: the remote should just stop there. */
+    private boolean atRowEnd(KeyEvent e) {
+        int code = e.getKeyCode();
+        if (e.getAction() != KeyEvent.ACTION_DOWN
+                || (code != KeyEvent.KEYCODE_DPAD_LEFT && code != KeyEvent.KEYCODE_DPAD_RIGHT)) return false;
+        View f = getCurrentFocus();
+        if (f == null || !(f.getParent() instanceof LinearLayout)) return false;
+        LinearLayout row = (LinearLayout) f.getParent();
+        if (row.getOrientation() != LinearLayout.HORIZONTAL || !(row.getParent() instanceof android.widget.HorizontalScrollView)) return false;
+        int i = row.indexOfChild(f);
+        return code == KeyEvent.KEYCODE_DPAD_RIGHT ? i == row.getChildCount() - 1 : i == 0;
     }
 
     /** Asks Android to uninstall an app (it shows its own "Do you want to uninstall?" confirm). */

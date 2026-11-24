@@ -64,9 +64,19 @@ final class Updater {
 
     /** Asks GitHub now. Returns a short status line. Call off the main thread. */
     static String check(Context c) {
-        String body = http(LATEST);
         Prefs.of(c).edit().putLong(LAST_CHECK, System.currentTimeMillis()).apply();
-        if (body == null) return "Couldn't reach GitHub. Try again later.";
+        // First the website route: github.com/<repo>/releases/latest redirects to .../tag/vX.Y.Z. It isn't
+        // rate-limited like api.github.com (60 calls an hour shared by every device on your internet).
+        String tag = latestTag();
+        if (tag != null) {
+            String version = tag.replaceFirst("^[vV]", "");
+            String base = "https://github.com/" + REPO + "/releases/download/" + tag + "/";
+            Prefs.of(c).edit().putString(NEW_VERSION, version).putString(APK_URL, base + "m3home.apk")
+                    .putString(SHA_URL, base + "m3home.apk.sha256").apply();
+            return newer(version, installedVersion(c)) ? "Version " + version + " is available" : "You're up to date (" + installedVersion(c) + ")";
+        }
+        String body = http(LATEST);
+        if (body == null) return Net.explain(lastCode, lastError);
         try {
             JSONObject rel = new JSONObject(body);
             String version = rel.getString("tag_name").replaceFirst("^[vV]", "");
@@ -92,12 +102,12 @@ final class Updater {
         if (apkUrl == null || shaUrl == null) { done.on("Check for updates first."); return; }
         String shaFile = http(shaUrl);
         String expected = shaFile == null ? null : shaFile.trim().split("\\s+")[0].toLowerCase(Locale.ROOT);
-        if (expected == null || expected.length() != 64) { done.on("Couldn't get the update's checksum."); return; }
+        if (expected == null || expected.length() != 64) { done.on("Couldn't get the update's checksum. " + Net.explain(lastCode, lastError)); return; }
 
         File dir = new File(c.getCacheDir(), "update");
         dir.mkdirs();
         File apk = new File(dir, "m3home.apk");
-        if (!download(apkUrl, apk)) { done.on("The download failed. Try again later."); return; }
+        if (!download(apkUrl, apk)) { done.on("The download failed. " + Net.explain(lastCode, lastError)); return; }
         if (!expected.equals(sha256(apk))) {
             apk.delete();
             done.on("The download didn't match its checksum, so it wasn't installed.");
@@ -175,11 +185,38 @@ final class Updater {
         return con;
     }
 
+    private static volatile int lastCode;
+    private static volatile Exception lastError;
+
+    /** The latest release's tag from the github.com redirect (no API call), or null. */
+    private static String latestTag() {
+        HttpURLConnection con = null;
+        try {
+            con = (HttpURLConnection) new URL("https://github.com/" + REPO + "/releases/latest").openConnection();
+            con.setConnectTimeout(10_000);
+            con.setReadTimeout(15_000);
+            con.setInstanceFollowRedirects(false);
+            con.setRequestProperty("User-Agent", "MaterialTV-Updater");
+            int code = con.getResponseCode();
+            String loc = con.getHeaderField("Location");
+            lastCode = code; lastError = null;
+            if (code / 100 != 3 || loc == null) return null;
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("/releases/tag/([A-Za-z0-9._-]{1,40})$").matcher(loc);
+            return m.find() ? m.group(1) : null;
+        } catch (Exception e) {
+            lastCode = 0; lastError = e;
+            return null;
+        } finally {
+            if (con != null) con.disconnect();
+        }
+    }
+
     private static String http(String url) {
         HttpURLConnection con = null;
         try {
             con = open(url);
-            if (con.getResponseCode() != 200) return null;
+            lastCode = con.getResponseCode(); lastError = null;
+            if (lastCode != 200) return null;
             try (InputStream in = con.getInputStream()) {
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
                 byte[] buf = new byte[8192];
@@ -188,6 +225,7 @@ final class Updater {
                 return out.toString("UTF-8");
             }
         } catch (Exception e) {
+            lastCode = 0; lastError = e;
             return null;
         } finally {
             if (con != null) con.disconnect();
@@ -198,7 +236,8 @@ final class Updater {
         HttpURLConnection con = null;
         try {
             con = open(url);
-            if (con.getResponseCode() != 200) return false;
+            lastCode = con.getResponseCode(); lastError = null;
+            if (lastCode != 200) return false;
             try (InputStream in = con.getInputStream(); OutputStream out = new FileOutputStream(to)) {
                 byte[] buf = new byte[65536];
                 int n;
@@ -211,6 +250,7 @@ final class Updater {
             }
             return true;
         } catch (Exception e) {
+            lastCode = 0; lastError = e;
             return false;
         } finally {
             if (con != null) con.disconnect();
