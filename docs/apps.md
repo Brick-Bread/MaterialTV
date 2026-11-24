@@ -313,6 +313,10 @@ files.
 | `category` | Up to 30 characters: `Popular`, `Video`, `Music`, `Games`, `Tools`, `Made for MaterialTV`. |
 | `description` | Up to 160 characters. |
 | `icon_url` | Optional https PNG/JPEG, up to 512 KB and 2048 px. |
+| `long_description` | Optional, for the app's full-screen page: 2–4 plain sentences, up to 1000 characters. |
+| `screenshots` | Optional, up to 4 https links to PNG/JPEG/WebP pictures (each up to 4 MB) from the app's own repo or site. |
+| `license` | Optional SPDX id, such as `GPL-3.0`. |
+| `website` | Optional https link to the app's home page. |
 | `source` | One of the four below. |
 
 | `source.type` | Other fields | Use for |

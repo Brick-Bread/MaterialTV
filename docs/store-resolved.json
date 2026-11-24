@@ -1,6 +1,6 @@
 {
  "version": 1,
- "generated": "2026-11-24T18:00:07Z",
+ "generated": "2026-11-24T18:14:35Z",
  "apps": [
   {
    "id": "spotube",
@@ -8,7 +8,9 @@
    "version": "v6.0.0",
    "url": "https://github.com/team-spotube/spotube/releases/download/v6.0.0/Spotube-android-all-arch.apk",
    "size": 76622081,
-   "asset": "Spotube-android-all-arch.apk"
+   "asset": "Spotube-android-all-arch.apk",
+   "published_at": "2026-11-10T03:40:12Z",
+   "notes": "Spotube V6 is here 🎉🚀\n🔥Highlights\n• Migration from Flutter to Compose Multiplatform, learn why we did it\n• UI redesign, introducing Millennium UI. 2000s look and feel with 2026's modernity\n• Jam sessions, play music with friends and family in sync. Runs on a new dedicated room server, with host-only controls and device bans to keep rooms safe\n• Full Android Auto integration. Browse, Library, Search all are there now, not just queue\n• iOS now plays audio through VLC, so every streaming format works, and keeps playing in the background\n• Migration from hetu_script to Kotlin for plugin development. Powered by Zipline by Cashapp\n• More extensibility, plugin support for Lyrics provider and Scrobbling providers\n• Redesigned plugin manager. Plugin login pages can only reach cookies and scripts of the domains they declare\n• Native Android APK, with reduced apk size, performance improvements and more native android integrations.\n• Relicensed from BSD-4-Clause to AGPL-3.0-or-later for a more Open Source friendly licensing. And for preventing distribution of closed source and maliciously modified Spotube.\n💫 Features\n• Migration to Compose Multiplatform\n• Add ChipTab component and refactor SearchScreen to use it\n• Add AutocompleteTextField component and integrate it into SearchScreen\n• Enhance AutocompleteTextField with focus management and dropdown behavior\n• Enhance AppSidebar with improved button interactions and visual feedback\n• Implement endless playback recommendations in…"
   },
   {
    "id": "simpmusic",
@@ -16,7 +18,9 @@
    "version": "v2.6.0",
    "url": "https://github.com/maxrave-dev/SimpMusic/releases/download/v2.6.0/SimpMusic-foss-armeabi-v7a-release.apk",
    "size": 28730871,
-   "asset": "SimpMusic-foss-armeabi-v7a-release.apk"
+   "asset": "SimpMusic-foss-armeabi-v7a-release.apk",
+   "published_at": "2026-11-14T11:30:57Z",
+   "notes": "Full changlogs here: https://www.simpmusic.org/blogs/new-update-simpmusic-v260\nRead user-guide: https://www.simpmusic.org/docs\nNew\n• Library sync: pair your phone with the Desktop app once by QR, and likes, followed artists, saved albums and podcasts, playlists and listening history stay the same on both, over your own Wi-Fi or Tailscale\n• SoundCloud Now Playing style: artwork on a card, the song's waveform as the seek bar, comments shown at their moment, and a comment box with quick reactions\n• 8D audio on Android and Desktop: the song moves around your head, with the direction and the time per turn of your choice\n• Import sign-ins from a browser on Desktop: take your YouTube or Spotify sign-in from a browser on the same computer instead of pasting cookies\n• Word-by-word lyrics from LRCLIB when it has word timing for the song\n• Music app colours: Spotify, SoundCloud, Apple Music and YouTube Music presets in the app colour picker\nImproved\n• AutoMix: a fade ends where the last chorus ends, and the next song comes in at the end of its intro\n• Downloads: Remove download and Cancel download in the song menu, and remove several at once from the Downloaded list\n• Discord login on the Full build: on Discord's own page in your browser, with no account token read by the app (log in again once)\n• Desktop: vertical scrollbars on every scrolling page, the sidebar, the queues and the comments, and artist logos that scale with the page\n• Home on Android fits more on screen, and rounded…"
   },
   {
    "id": "metrolist",
@@ -24,7 +28,9 @@
    "version": "v14.0.1",
    "url": "https://github.com/MetrolistGroup/Metrolist/releases/download/v14.0.1/Metrolist.apk",
    "size": 15088349,
-   "asset": "Metrolist.apk"
+   "asset": "Metrolist.apk",
+   "published_at": "2026-11-19T01:04:09Z",
+   "notes": "Fixes after 14.0.0\nMetrolist 14.0.1 fixes upgrades from 13.x, playback and desktop stability, and brings back several 13.x features.\nHighlights\n• Restored gapless playback on Android (@nyxiereal)\n• Recovered likes, saved albums, lyrics, downloads and cached audio lost when upgrading from 13.x (@nyxiereal)\n• Added iOS 15 support (@nyxiereal)\n• Added an IzzyOnDroid build without Sentry or the in-app updater (@nyxiereal)\n• Added opt-in nightly updates (@nyxiereal)\nNew features\n• Added 1440p music-video quality (@nyxiereal)\n• Added episode search on podcast pages (@nyxiereal)\n• Added 150%, 175% and 200% display density presets (@mayuur-naik)\n• Added system tray minimize settings on desktop (@l6t9)\n• Desktop shows the current song in the window title (@nyxiereal)\n• Improved lyrics romanization with on-device language detection (@nyxiereal)\n• Added an option to hide the original script when romanization is shown (@ibratabian17)\n• Restored adding songs to the library and sorting by listening time or download date (@nyxiereal)\n• Saving an album or playlist no longer downloads it unless you turn that on, as in 13.x (@nyxiereal)\n• Unavailable songs are greyed out (@nyxiereal)\n• Added a Homebrew tap for macOS and Linux, and macOS support in the Nix flake (@nyxiereal @BierDav)\nFixes\n• Fixed shuffle, Repeat All and radio from Speed Dial (@kairosci @nyxiereal)\n• Fixed Android playback stalling with audio offload or when audio focus is denied (@kairosci @nyxiereal)\n• Fixed playlist…"
   },
   {
    "id": "radiodroid",
@@ -32,7 +38,9 @@
    "version": "0.86",
    "url": "https://github.com/segler-alex/RadioDroid/releases/download/0.86/RadioDroid-free-release-0.86-bafa5f3.apk",
    "size": 10399084,
-   "asset": "RadioDroid-free-release-0.86-bafa5f3.apk"
+   "asset": "RadioDroid-free-release-0.86-bafa5f3.apk",
+   "published_at": "2023-09-28T20:29:41Z",
+   "notes": "[0.86] - 2023-09-28\nAdded\n• Auto stop support for auto start-play\nChanged\n• Enabled android tv again\n• Distribute package as AAB on play store from now on\n• Sorting of entries from loaded files is now the same as the file"
   },
   {
    "id": "smarttube",
@@ -40,7 +48,9 @@
    "version": "32.80s",
    "url": "https://github.com/yuliskov/SmartTube/releases/download/32.80s/SmartTube_stable_32.80_armeabi-v7a.apk",
    "size": 25569109,
-   "asset": "SmartTube_stable_32.80_armeabi-v7a.apk"
+   "asset": "SmartTube_stable_32.80_armeabi-v7a.apk",
+   "published_at": "2026-11-19T13:56:02Z",
+   "notes": "• Fix code generation for casting from phone by @kamikaze4441\n• Added option to quickly skip chapters to Settings/General/Mapping/Next chapter with UP button\n• Minor playback fixes\n\nDownloader code: 28544 |  F-Droid | Translation\n\n🛡️ VirusTotal Analysis"
   },
   {
    "id": "jellyfin",
@@ -48,7 +58,9 @@
    "version": "v0.20.0",
    "url": "https://github.com/jellyfin/jellyfin-androidtv/releases/download/v0.20.0/jellyfin-androidtv-v0.20.0-release.apk",
    "size": 29945596,
-   "asset": "jellyfin-androidtv-v0.20.0-release.apk"
+   "asset": "jellyfin-androidtv-v0.20.0-release.apk",
+   "published_at": "2026-11-10T12:50:35Z",
+   "notes": "Jellyfin for Android TV 0.20 is here! This release brings redesigned settings, improved video playback and subtitle support, better integration with external players, and plenty of enhancements across the app. Read about the highlights in our blog post or explore the full changelog below.\n\nIf you appreciate my work, you can show your support with a donation through Buy Me a Coffee or GitHub sponsors. Your support helps me continue improving and growing the app. Thank you!\n🌟 Highlights\n• Add option to always burn in subtitles when transcoding #4459, by @GertSallaerts\n• Require Android 6 at minimum \\(API 23\\) #4836, by @nielsvanvelzen\n• Use Jellyfin 10\\.11 based SDK #5037, by @nielsvanvelzen\n• Support Advanced SubStation Alpha direct play #5121, by @nielsvanvelzen\n• Add new settings UI #5198, by @nielsvanvelzen\n• Allow selecting external video player app #5280, by @nielsvanvelzen\n• Add user\\-defined AVC/HEVC codec level override #5520, by @johnpc\n• Add photo player presentation delay to settings as user preference #5722, by @hraabis\n• Add user preferences to force enable or disable common HDR formats #5743, by @clowncracker\n💥 Crash fixes\n• Use android plugin for AboutLibraries generation #5206, by @nielsvanvelzen\n• Fix missing focus in new player UI #5513, by @nielsvanvelzen\n• Fix NullPointerException when display\\.getHdrCapabilities\\(\\) returns null #5718, by @nielsvanvelzen\n• Fix Live TV guide crash when channel loading fails #5801, by @andrew749\n• Use strong reference to…"
   },
   {
    "id": "kodi",
@@ -70,7 +82,9 @@
    "version": "v12.2",
    "url": "https://github.com/moonlight-stream/moonlight-android/releases/download/v12.2/app-nonRoot-release.apk",
    "size": 11137885,
-   "asset": "app-nonRoot-release.apk"
+   "asset": "app-nonRoot-release.apk",
+   "published_at": "2026-09-12T19:28:27Z",
+   "notes": "• Updated target API to Android 16\n• Added support for keyboard capture on Android 16.1 and later\n• Added mappings for newer keycodes (like F13-F24)\n• Fixed crashes and ANRs when using gamepads with RGB LEDs\n• Fixed '+' key on the virtual keyboard\n• Fixed crash on Meta Quest\n• Improved Xbox controller support using the built-in USB driver\n• Updated dependencies to the latest versions\n• Updated translations"
   },
   {
    "id": "localsend",
@@ -78,7 +92,9 @@
    "version": "v1.19.0",
    "url": "https://github.com/localsend/localsend/releases/download/v1.19.0/LocalSend-1.19.0-android-arm32v7.apk",
    "size": 39516499,
-   "asset": "LocalSend-1.19.0-android-arm32v7.apk"
+   "asset": "LocalSend-1.19.0-android-arm32v7.apk",
+   "published_at": "2026-11-24T15:18:46Z",
+   "notes": "This release also added the rpm package for the first time (e.g. for Fedora users).\nPlease note a breaking change in the CLI API when sending files.\n• feat: make sending checksums opt-in (@Tienisto)\n• feat: format timestamps using system date and time settings (@ShlomoCode)\n• feat: add keyboard shortcuts to accept or decline incoming transfers (@Tienisto)\n• feat: restore hashtag codes for connecting to devices (@Tienisto)\n• feat: show an HTTPS badge in the device list tile when encryption is enabled (@Tienisto)\n• feat: show inbound/outbound reachability per device to help diagnose firewall issues (@Tienisto)\n• feat: add a copy button to the log screens (@ShlomoCode)\n• feat: add a Cancel button to the device name dialog (@ShlomoCode)\n• feat: group the changelog by release and type, and show what's new after an update (@ShlomoCode)\n• feat(cli): send text using --text, including input from stdin (@Tienisto)\n• feat(cli)!: replace --file with the send command for sending files and directories (@otanim)\n• feat(cli): add builds for Alpine Linux (@julianxhokaxhiu)\n• feat(desktop): add an option to keep the LocalSend window above other windows (@ShlomoCode)\n• feat(macos): use native window restoration to keep partially off-screen windows near their saved position (@ShlomoCode)\n• feat(linux): support delta updates for the AppImage (@ShlomoCode)\n• feat(linux): add x86_64 rpm package to release workflow (@basil)\n• feat(linux): add software rendering toggle with automatic fallback after…"
   },
   {
    "id": "tailscale",
@@ -86,7 +102,9 @@
    "version": "1.104.7-tfb3b9b296-g226f029a3",
    "url": "https://github.com/tailscale/tailscale-android/releases/download/1.104.7-tfb3b9b296-g226f029a3/tailscale-android-universal-1.104.7.apk",
    "size": 105727207,
-   "asset": "tailscale-android-universal-1.104.7.apk"
+   "asset": "tailscale-android-universal-1.104.7.apk",
+   "published_at": "2026-11-17T17:51:52Z",
+   "notes": "Please refer to the changelog available at https://tailscale.com/changelog"
   }
  ]
 }

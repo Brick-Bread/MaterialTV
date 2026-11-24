@@ -7,8 +7,9 @@ home, so a second Fire TV quickly saw "can't reach GitHub". This script does the
 here, with the workflow's token, and writes the answers to a file GitHub Pages serves (Pages has
 no such limit). The TV reads that file and only calls the API for apps that aren't in it.
 
-For each "github" entry: the latest release's tag, and the .apk asset the TV would pick (same
-rules as Store.resolve/score in Store.java). For each "url" entry: its link and version, plus the
+For each "github" entry: the latest release's tag, the .apk asset the TV would pick (same
+rules as Store.resolve/score in Store.java), when it was published, and its release notes as plain
+text (markdown stripped, at most 1500 characters) for the app's page on the TV. For each "url" entry: its link and version, plus the
 size from a HEAD request when the server gives one.
 
 Usage: GITHUB_TOKEN=... python .github/scripts/resolve_store.py [store.json] [out.json]
@@ -50,6 +51,37 @@ def api(path, token):
         return json.load(r)
 
 
+MAX_NOTES = 1500
+
+
+def plain(md):
+    """Release notes in markdown -> short plain text (the TV shows it as is)."""
+    if not md:
+        return ""
+    t = md.replace("\r\n", "\n").replace("\r", "\n")
+    t = re.sub(r"<!--.*?-->", "", t, flags=re.S)
+    t = re.sub(r"```.*?```", "", t, flags=re.S)                      # code blocks
+    t = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", t)                       # images
+    t = re.sub(r"<img[^>]*>", "", t, flags=re.I)
+    t = re.sub(r"<br\s*/?>", "\n", t, flags=re.I)
+    t = re.sub(r"<[^>]+>", "", t)                                    # other html tags
+    t = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", t)                   # links -> their text
+    t = re.sub(r"^\s{0,3}#{1,6}\s*", "", t, flags=re.M)              # headings
+    t = re.sub(r"^\s{0,3}>\s?", "", t, flags=re.M)                   # quotes
+    t = re.sub(r"^\s*(-{3,}|\*{3,}|_{3,})\s*$", "", t, flags=re.M)   # rules
+    t = re.sub(r"^\s*\|.*\|\s*$", "", t, flags=re.M)                # tables
+    t = re.sub(r"^\s*[-*+]\s+", "• ", t, flags=re.M)            # bullets
+    t = re.sub(r"(\*\*|__|~~|`)", "", t)                             # emphasis, code
+    t = re.sub(r"(?<![\w*])\*(?!\s)([^*\n]+?)\*(?!\w)", r"\1", t)    # *italic*
+    t = re.sub(r"[ \t]+\n", "\n", t)
+    t = re.sub(r"\n{3,}", "\n\n", t).strip()
+    if len(t) > MAX_NOTES:
+        cut = t[:MAX_NOTES - 1]
+        sp = max(cut.rfind(" "), cut.rfind("\n"))
+        t = (cut[:sp] if sp > MAX_NOTES * 0.7 else cut).rstrip() + "…"
+    return t
+
+
 def resolve_github(app, token):
     src = app["source"]
     rel = api("/repos/%s/releases/latest" % src["repo"], token)
@@ -73,6 +105,8 @@ def resolve_github(app, token):
         "url": best["browser_download_url"],
         "size": best.get("size", -1),
         "asset": best.get("name", ""),
+        "published_at": rel.get("published_at") or "",
+        "notes": plain(rel.get("body") or ""),
     }
 
 

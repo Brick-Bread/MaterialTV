@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
@@ -67,6 +68,10 @@ final class Store {
     private static final String LAST_REFRESH = "store_last_refresh", LEARNED = "store_pkg:";
     private static final long DAY_MS = 24 * 3600_000L;
     private static final long MAX_APK = 300L * 1024 * 1024, MAX_TEXT = 1_000_000, MAX_ICON = 512 * 1024;
+    /** Screenshots on an app's page: at most 4 per app, each download at most 4 MB, the cache at most 24 MB. */
+    static final int MAX_SHOTS = 4;
+    private static final long MAX_SHOT = 4L * 1024 * 1024, MAX_SHOT_CACHE = 24L * 1024 * 1024;
+    private static final int MAX_NOTES = 1500;
     static final int MAX_CUSTOM = 30, MAX_NAME = 40, MAX_URL = 500;
     static final Pattern REPO = Pattern.compile("[A-Za-z0-9][A-Za-z0-9-]{0,38}/[A-Za-z0-9._-]{1,100}");
     private static final Pattern ID = Pattern.compile("[a-z0-9][a-z0-9._-]{0,39}");
@@ -79,6 +84,9 @@ final class Store {
     static final class Entry {
         final String id, name, description, category, iconUrl, type, repo, assetRegex, url, version, pkg;
         final boolean custom;
+        /** For the app's page (StoreDetailActivity): optional catalog extras, see extras(). */
+        String longDescription = "", license, website;
+        final List<String> screenshots = new ArrayList<>();
 
         Entry(String id, String name, String pkg, String description, String category, String iconUrl,
               String type, String repo, String assetRegex, String url, String version, boolean custom) {
@@ -130,7 +138,17 @@ final class Store {
     private static volatile Listener listener;
     private static volatile boolean refreshing;
 
+    private static final List<Listener> watchers = new CopyOnWriteArrayList<>(); // open app pages
+
     static void setListener(Listener l) { listener = l; }
+
+    /** Another listener (an app's page), told as well as Home's; remove it when done. */
+    static void addListener(Listener l) { if (l != null && !watchers.contains(l)) watchers.add(l); }
+
+    static void removeListener(Listener l) { watchers.remove(l); }
+
+    /** Tells Home (and open pages) that the list changed: something was installed, removed or added. */
+    static void listChanged() { changed(null); }
 
     /** Progress of an install in hand, or null. */
     static String status(String id) { return status.get(id); }
@@ -142,6 +160,7 @@ final class Store {
         main.post(() -> {
             Listener l = listener;
             if (l != null) l.changed(id);
+            for (Listener w : watchers) w.changed(id);
         });
     }
 
@@ -186,7 +205,7 @@ final class Store {
             for (int i = 0; i < a.length() && out.size() < 100; i++) {
                 JSONObject o = a.optJSONObject(i);
                 Entry plugin = parsePluginEntry(o, ids); // plugin entries: see the plugins section below
-                if (plugin != null) { ids.add(plugin.id); out.add(plugin); continue; }
+                if (plugin != null) { extras(plugin, o); ids.add(plugin.id); out.add(plugin); continue; }
                 JSONObject src = o == null ? null : o.optJSONObject("source");
                 if (src == null) continue;
                 String id = o.optString("id"), name = o.optString("name").trim();
@@ -195,7 +214,7 @@ final class Store {
                 if (!ID.matcher(id).matches() || ids.contains(id) || name.isEmpty() || name.length() > MAX_NAME) continue;
                 if (type.equals("webapp")) { // web apps have no package: see the web apps section
                     Entry w = webappEntry(id, name, o, src.optString("manifest"), false);
-                    if (w != null) { ids.add(id); out.add(w); }
+                    if (w != null) { extras(w, o); ids.add(id); out.add(w); }
                     continue;
                 }
                 if (!PKG.matcher(pkg).matches()) continue;
@@ -215,13 +234,32 @@ final class Store {
                     continue;
                 }
                 ids.add(id);
-                out.add(new Entry(id, name, pkg, clip(o.optString("description"), 160), clip(o.optString("category"), 30),
+                Entry entry = new Entry(id, name, pkg, clip(o.optString("description"), 160), clip(o.optString("category"), 30),
                         icon.isEmpty() ? null : icon, type, repo, regex == null || regex.isEmpty() ? null : regex,
-                        url, version == null || version.isEmpty() ? null : version, false));
+                        url, version == null || version.isEmpty() ? null : version, false);
+                extras(entry, o);
+                out.add(entry);
             }
             return out;
         } catch (Exception e) {
             return null;
+        }
+    }
+
+    /**
+     * The optional extras an app's page shows: "long_description" (up to 1000 characters),
+     * "screenshots" (up to 4 https links), "license" (an SPDX id) and "website" (https).
+     */
+    private static void extras(Entry e, JSONObject o) {
+        e.longDescription = clip(o.optString("long_description"), 1000);
+        String lic = clip(o.optString("license"), 40);
+        e.license = lic.matches("[A-Za-z0-9.+-]+") ? lic : null;
+        String web = o.optString("website", "");
+        e.website = httpsOk(web) ? web : null;
+        JSONArray shots = o.optJSONArray("screenshots");
+        for (int i = 0; shots != null && i < shots.length() && e.screenshots.size() < MAX_SHOTS; i++) {
+            String u = shots.optString(i, "");
+            if (httpsOk(u) && !e.screenshots.contains(u)) e.screenshots.add(u);
         }
     }
 
@@ -351,32 +389,51 @@ final class Store {
                 if (p != null) out.add(p);
                 continue;
             }
-            String installed = null;
-            if (e.pkg != null) {
-                try {
-                    PackageInfo pi = pm.getPackageInfo(e.pkg, 0);
-                    installed = pi.versionName == null ? "" : pi.versionName;
-                } catch (PackageManager.NameNotFoundException ignored) {
-                    // Not installed.
-                }
-            }
-            JSONObject r = rel.optJSONObject(e.id);
-            String latest = e.version != null ? e.version : r == null ? null : r.optString("version", null);
-            long size = r == null ? -1 : r.optLong("size", -1);
-            int state;
-            if (installed == null) state = GET;
-            else if (!e.appstore() && latest != null && newer(latest, installed)) state = UPDATE;
-            else if (e.custom) state = INSTALLED;
-            else state = INSTALLED; // kept on the row so you can open or uninstall it from here
-            Bitmap icon = icon(c, e.id);
-            int tint = icon != null ? M3.containerFor(new BitmapDrawable(c.getResources(), icon)) : 0;
-            if (icon == null || tint == M3.SURFACE_HIGH) {
-                float hue = (e.id.hashCode() & 0x7FFFFFFF) % 360; // a steady colour per app
-                tint = Color.HSVToColor(new float[] { hue, 0.42f, 0.30f });
-            }
-            out.add(new Item(e, state, e.pkg, latest, size, icon, tint));
+            out.add(appItem(c, pm, rel, e));
         }
         return out;
+    }
+
+    /**
+     * One app as its page shows it right now (plugins too, installed or not). Null if the id is
+     * no longer in the catalog or your apps. Slow: call off the main thread.
+     */
+    static Item item(Context c, String id) {
+        Entry e = find(c, id);
+        if (e == null) return null;
+        if (e.webapp()) return webappItem(c, e);
+        if (e.plugin()) {
+            Item p = pluginItem(c, e);
+            return p != null ? p : new Item(e, INSTALLED, null, null, -1, icon(c, e.id), Plugins.tint(e.id));
+        }
+        return appItem(c, c.getPackageManager(), releases(c), e);
+    }
+
+    private static Item appItem(Context c, PackageManager pm, JSONObject rel, Entry e) {
+        String installed = null;
+        if (e.pkg != null) {
+            try {
+                PackageInfo pi = pm.getPackageInfo(e.pkg, 0);
+                installed = pi.versionName == null ? "" : pi.versionName;
+            } catch (PackageManager.NameNotFoundException ignored) {
+                // Not installed.
+            }
+        }
+        JSONObject r = rel.optJSONObject(e.id);
+        String latest = e.version != null ? e.version : r == null ? null : r.optString("version", null);
+        long size = r == null ? -1 : r.optLong("size", -1);
+        int state;
+        if (installed == null) state = GET;
+        else if (!e.appstore() && latest != null && newer(latest, installed)) state = UPDATE;
+        else if (e.custom) state = INSTALLED;
+        else state = INSTALLED; // kept on the row so you can open or uninstall it from here
+        Bitmap icon = icon(c, e.id);
+        int tint = icon != null ? M3.containerFor(new BitmapDrawable(c.getResources(), icon)) : 0;
+        if (icon == null || tint == M3.SURFACE_HIGH) {
+            float hue = (e.id.hashCode() & 0x7FFFFFFF) % 360; // a steady colour per app
+            tint = Color.HSVToColor(new float[] { hue, 0.42f, 0.30f });
+        }
+        return new Item(e, state, e.pkg, latest, size, icon, tint);
     }
 
     // ---- plugins (entries with "type": "plugin"; everything else lives in Plugins.java) ----------
@@ -595,7 +652,9 @@ final class Store {
                     assets.put(new JSONObject().put("name", a.optString("name"))
                             .put("browser_download_url", a.optString("browser_download_url")).put("size", a.optLong("size", -1)));
                 }
-                release = new JSONObject().put("tag_name", full.optString("tag_name", "")).put("assets", assets);
+                release = new JSONObject().put("tag_name", full.optString("tag_name", "")).put("assets", assets)
+                        .put("published_at", full.optString("published_at", ""))
+                        .put("notes", plainNotes(full.optString("body", "")));
             }
             release.put("time", now);
             synchronized (Store.class) {
@@ -657,6 +716,167 @@ final class Store {
         }
     }
 
+    // ---- an app's page: its latest release, release notes and screenshots ----------------------
+
+    /** What an app's page knows about its latest release. Any text may be empty, the size -1. */
+    static final class Release {
+        final String version, published, notes;
+        final long size;
+
+        Release(String version, String published, String notes, long size) {
+            this.version = version; this.published = published; this.notes = notes; this.size = size;
+        }
+    }
+
+    /**
+     * The latest release as known now, without the network: store-resolved.json for catalog apps
+     * (version, size, date and notes), else what was last fetched from GitHub. Off the main thread.
+     */
+    static Release release(Context c, Entry e) {
+        String version = e.version != null ? e.version : "", published = "", notes = "";
+        long size = -1;
+        JSONObject known = e.custom || e.appstore() ? null : resolved(c).optJSONObject(e.id);
+        boolean same = known != null && (e.repo != null ? e.repo.equals(known.optString("repo"))
+                : e.url != null && e.url.equals(known.optString("url")));
+        if (same) {
+            if (version.isEmpty()) version = known.optString("version", "");
+            size = known.optLong("size", -1);
+            published = known.optString("published_at", "");
+            notes = known.optString("notes", "");
+        }
+        if (e.repo != null && published.isEmpty()) {
+            JSONObject gh = readJson(new File(c.getFilesDir(), GITHUB)).optJSONObject(e.repo);
+            if (gh != null) {
+                if (version.isEmpty()) version = gh.optString("tag_name", "");
+                published = gh.optString("published_at", "");
+                notes = gh.optString("notes", "");
+            }
+        }
+        JSONObject r = releases(c).optJSONObject(e.id);
+        if (r != null) {
+            if (version.isEmpty()) version = r.optString("version", "");
+            if (size <= 0) size = r.optLong("size", -1);
+        }
+        return new Release(clip(version, 40), clip(published, 40), clip(notes, MAX_NOTES), size);
+    }
+
+    /**
+     * Like release(), but first asks GitHub about repos store-resolved.json doesn't cover (your
+     * own apps, mostly), at most every 12 hours per repo. Off the main thread.
+     */
+    static Release fetchRelease(Context c, Entry e) {
+        if (e.repo != null) {
+            try {
+                resolve(c, e);
+            } catch (Exception ignored) {
+                // Show what's known.
+            }
+        }
+        return release(c, e);
+    }
+
+    /** GitHub release notes (markdown) as short plain text: the same rules as resolve_store.py's plain(). */
+    static String plainNotes(String md) {
+        if (md == null || md.isEmpty()) return "";
+        String t = md.replace("\r\n", "\n").replace('\r', '\n');
+        if (t.length() > 20_000) t = t.substring(0, 20_000);
+        t = t.replaceAll("(?s)<!--.*?-->", "")
+                .replaceAll("(?s)```.*?```", "")                          // code blocks
+                .replaceAll("!\\[[^\\]]*\\]\\([^)]*\\)", "")              // images
+                .replaceAll("(?i)<img[^>]*>", "")
+                .replaceAll("(?i)<br\\s*/?>", "\n")
+                .replaceAll("<[^>]+>", "")                                // other html tags
+                .replaceAll("\\[([^\\]]*)\\]\\([^)]*\\)", "$1")           // links -> their text
+                .replaceAll("(?m)^\\s{0,3}#{1,6}\\s*", "")                // headings
+                .replaceAll("(?m)^\\s{0,3}>\\s?", "")                     // quotes
+                .replaceAll("(?m)^\\s*(-{3,}|\\*{3,}|_{3,})\\s*$", "")    // rules
+                .replaceAll("(?m)^\\s*\\|.*\\|\\s*$", "")                 // tables
+                .replaceAll("(?m)^\\s*[-*+]\\s+", "\u2022 ")              // bullets
+                .replaceAll("(\\*\\*|__|~~|`)", "")                       // emphasis, code
+                .replaceAll("[ \\t]+\n", "\n")
+                .replaceAll("\n{3,}", "\n\n")
+                .trim();
+        if (t.length() > MAX_NOTES) {
+            String cut = t.substring(0, MAX_NOTES - 1);
+            int sp = Math.max(cut.lastIndexOf(' '), cut.lastIndexOf('\n'));
+            t = (sp > MAX_NOTES * 0.7 ? cut.substring(0, sp) : cut).trim() + "\u2026";
+        }
+        return t;
+    }
+
+    /**
+     * A screenshot from an app's catalog entry, at most maxWidth pixels wide (RGB_565), or null.
+     * https only; each download is at most 4 MB and is kept in the cache (24 MB in all, the
+     * oldest dropped first). Off the main thread; load one at a time.
+     */
+    static Bitmap screenshot(Context c, String url, int maxWidth) {
+        if (!httpsOk(url)) return null;
+        File dir = new File(c.getCacheDir(), "store-shots");
+        File f = new File(dir, Integer.toHexString(url.hashCode()) + "-" + Integer.toHexString(url.length()) + ".img");
+        if (!f.isFile()) {
+            byte[] b = bytes(url, MAX_SHOT);
+            if (b == null) return null;
+            BitmapFactory.Options o = new BitmapFactory.Options();
+            o.inJustDecodeBounds = true;
+            BitmapFactory.decodeByteArray(b, 0, b.length, o);
+            if (o.outWidth <= 0 || o.outHeight <= 0 || o.outWidth > 8192 || o.outHeight > 8192) return null; // not a sensible picture
+            dir.mkdirs();
+            trimShots(dir, b.length);
+            write(f, b);
+            if (!f.isFile()) return decodeShot(b, o.outWidth, maxWidth);
+        }
+        f.setLastModified(System.currentTimeMillis());
+        try {
+            BitmapFactory.Options o = new BitmapFactory.Options();
+            o.inJustDecodeBounds = true;
+            BitmapFactory.decodeFile(f.getPath(), o);
+            if (o.outWidth <= 0) { f.delete(); return null; }
+            return scaleTo(BitmapFactory.decodeFile(f.getPath(), shotOptions(o.outWidth, maxWidth)), maxWidth);
+        } catch (OutOfMemoryError | RuntimeException e) {
+            return null;
+        }
+    }
+
+    private static Bitmap decodeShot(byte[] b, int width, int maxWidth) {
+        try {
+            return scaleTo(BitmapFactory.decodeByteArray(b, 0, b.length, shotOptions(width, maxWidth)), maxWidth);
+        } catch (OutOfMemoryError | RuntimeException e) {
+            return null;
+        }
+    }
+
+    private static BitmapFactory.Options shotOptions(int width, int maxWidth) {
+        BitmapFactory.Options o = new BitmapFactory.Options();
+        int sample = 1;
+        while (width / (sample * 2) >= maxWidth) sample *= 2;
+        o.inSampleSize = sample;
+        o.inPreferredConfig = Bitmap.Config.RGB_565;
+        return o;
+    }
+
+    private static Bitmap scaleTo(Bitmap b, int maxWidth) {
+        if (b == null || b.getWidth() <= maxWidth) return b;
+        int h = Math.max(1, Math.round(b.getHeight() * (maxWidth / (float) b.getWidth())));
+        Bitmap s = Bitmap.createScaledBitmap(b, maxWidth, h, true);
+        if (s != b) b.recycle();
+        return s;
+    }
+
+    /** Makes room in the screenshot cache: the least recently shown go first. */
+    private static synchronized void trimShots(File dir, long incoming) {
+        File[] files = dir.listFiles();
+        if (files == null) return;
+        long total = incoming;
+        for (File f : files) total += f.length();
+        if (total <= MAX_SHOT_CACHE) return;
+        java.util.Arrays.sort(files, (a, b) -> Long.compare(a.lastModified(), b.lastModified()));
+        for (File f : files) {
+            if (total <= MAX_SHOT_CACHE) break;
+            total -= f.length();
+            f.delete();
+        }
+    }
+
     // ---- icons --------------------------------------------------------------------------------
 
     private static File iconFile(Context c, String id) { return new File(new File(c.getFilesDir(), ICONS), id + ".img"); }
@@ -697,7 +917,8 @@ final class Store {
     }
     // ---- bundled store icons (end) ----
 
-    private static Bitmap icon(Context c, String id) {
+    /** An app's icon: the bundled one, else the downloaded one; null if neither. Off the main thread. */
+    static Bitmap icon(Context c, String id) {
         Bitmap bundled = bundledIcon(c, id); // bundled store icon first
         if (bundled != null) return bundled;
         File f = iconFile(c, id);
