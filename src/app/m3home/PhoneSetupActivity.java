@@ -190,7 +190,22 @@ public class PhoneSetupActivity extends Activity {
     public void onRequestPermissionsResult(int code, String[] perms, int[] results) {
         if (code != CAMERA_REQUEST) return;
         if (results.length > 0 && results[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) openScanner();
-        else say("Without the camera, type the TV's address instead (it's shown on the TV).", M3.ON_SURFACE_VAR);
+        else if (!cameraHintShown) {
+            cameraHintShown = true;
+            say("Without the camera, type the TV's address instead (it's shown on the TV).", M3.ON_SURFACE_VAR);
+        }
+    }
+
+    private boolean cameraHintShown;
+
+    /** A new setup link while this screen is open (e.g. scanned with the phone's camera app): start over with it. */
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        if (intent != null && intent.getData() != null && !busy) {
+            setIntent(intent);
+            recreate();
+        }
     }
 
     /** Accepts the TV's code (setup.html?tv=…&c=… or m3home://setup?…), fills in the address and waits for "Set up". */
