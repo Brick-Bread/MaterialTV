@@ -67,10 +67,13 @@ final class ScreensaverView extends FrameLayout {
     private long videoStarted;
     private int generation;
 
+    /** The screensaver always uses the fixed dark scheme, whatever the Home theme is. */
+    private final M3.Scheme ink = M3.dark();
+
     ScreensaverView(Context c) {
         super(c);
         M3.init(c);
-        setBackground(new Glow());
+        setBackground(new Glow(ink));
         setKeepScreenOn(true);
         stage = new FrameLayout(c);
         addView(stage, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
@@ -273,10 +276,10 @@ final class ScreensaverView extends FrameLayout {
         final LinearLayout box = new LinearLayout(getContext());
         box.setOrientation(LinearLayout.VERTICAL);
         box.setGravity(Gravity.CENTER_HORIZONTAL);
-        infoTime = text(104, 0x80E6E0E9, M3.LIGHT);
+        infoTime = text(104, M3.alpha(ink.onSurface, 0x80), M3.LIGHT);
         infoTime.setIncludeFontPadding(false);
         box.addView(infoTime);
-        sleepLine = text(20, 0x80D0BCFF, M3.REGULAR);
+        sleepLine = text(20, M3.alpha(ink.primary, 0x80), M3.REGULAR);
         sleepLine.setPadding(0, dp(6), 0, 0);
         sleepLine.setText(sleepMessage == null ? "Sleep well" : sleepMessage);
         sleepLine.setGravity(Gravity.CENTER);
@@ -318,14 +321,14 @@ final class ScreensaverView extends FrameLayout {
         final LinearLayout box = new LinearLayout(getContext());
         box.setOrientation(LinearLayout.VERTICAL);
         box.setGravity(Gravity.CENTER_HORIZONTAL);
-        TextView hello = text(26, M3.PRIMARY, M3.MEDIUM);
+        TextView hello = text(26, ink.primary, M3.MEDIUM);
         hello.setText(greeting());
         box.addView(hello);
-        infoTime = text(190, M3.ON_SURFACE, M3.LIGHT);
+        infoTime = text(190, ink.onSurface, M3.LIGHT);
         infoTime.setIncludeFontPadding(false);
         infoTime.setLetterSpacing(-0.03f);
         box.addView(infoTime);
-        infoDate = text(30, M3.ON_SURFACE_VAR, M3.REGULAR);
+        infoDate = text(30, ink.onSurfaceVar, M3.REGULAR);
         infoDate.setPadding(0, dp(4), 0, dp(28));
         box.addView(infoDate);
         if (showInfo()) {
@@ -363,21 +366,21 @@ final class ScreensaverView extends FrameLayout {
         if (!showInfo()) return;
         LinearLayout card = new LinearLayout(getContext());
         card.setOrientation(LinearLayout.VERTICAL);
-        card.setBackground(M3.outlined(0xB3141218, 0x33FFFFFF, dp(1), dp(32)));
+        card.setBackground(M3.outlined(M3.alpha(ink.background, 0xB3), 0x33FFFFFF, dp(1), dp(32)));
         card.setPadding(dp(32), dp(22), dp(36), dp(24));
 
         LinearLayout top = new LinearLayout(getContext());
         top.setOrientation(LinearLayout.HORIZONTAL);
         top.setBaselineAligned(true);
-        infoTime = text(76, M3.ON_SURFACE, M3.LIGHT);
+        infoTime = text(76, ink.onSurface, M3.LIGHT);
         infoTime.setIncludeFontPadding(false);
         top.addView(infoTime);
-        infoDate = text(20, M3.ON_SURFACE_VAR, M3.REGULAR);
+        infoDate = text(20, ink.onSurfaceVar, M3.REGULAR);
         infoDate.setPadding(dp(18), 0, 0, 0);
         top.addView(infoDate);
         card.addView(top);
 
-        infoCaption = text(16, M3.PRIMARY, M3.MEDIUM);
+        infoCaption = text(16, ink.primary, M3.MEDIUM);
         infoCaption.setPadding(dp(2), dp(4), 0, 0);
         infoCaption.setSingleLine(true);
         infoCaption.setEllipsize(TextUtils.TruncateAt.END);
@@ -441,10 +444,10 @@ final class ScreensaverView extends FrameLayout {
         row.setGravity(Gravity.CENTER_VERTICAL);
         ImageView iv = new ImageView(getContext());
         iv.setImageResource(icon);
-        iv.setImageTintList(ColorStateList.valueOf(M3.PRIMARY));
+        iv.setImageTintList(ColorStateList.valueOf(ink.primary));
         int is = dp(widgetsAsChips ? 24 : 22);
         row.addView(iv, new LinearLayout.LayoutParams(is, is));
-        TextView t = text(widgetsAsChips ? 20 : 19, M3.ON_SURFACE, M3.REGULAR);
+        TextView t = text(widgetsAsChips ? 20 : 19, ink.onSurface, M3.REGULAR);
         t.setText(title);
         t.setSingleLine(true);
         t.setEllipsize(TextUtils.TruncateAt.END);
@@ -452,7 +455,7 @@ final class ScreensaverView extends FrameLayout {
         t.setPadding(dp(12), 0, 0, 0);
         row.addView(t);
         if (detail != null) {
-            TextView d = text(widgetsAsChips ? 18 : 17, M3.ON_SURFACE_VAR, M3.REGULAR);
+            TextView d = text(widgetsAsChips ? 18 : 17, ink.onSurfaceVar, M3.REGULAR);
             d.setText("  ·  " + detail);
             d.setSingleLine(true);
             row.addView(d);
@@ -460,7 +463,7 @@ final class ScreensaverView extends FrameLayout {
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         if (widgetsAsChips) {
-            row.setBackground(M3.rounded(0x66211F26, dp(24)));
+            row.setBackground(M3.rounded(M3.alpha(ink.surface, 0x66), dp(24)));
             row.setPadding(dp(18), dp(12), dp(22), dp(12));
             lp.setMargins(dp(8), 0, dp(8), 0);
             if (infoWidgets.getChildCount() >= 3) return; // three chips fit the screen and keep it calm
