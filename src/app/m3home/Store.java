@@ -454,6 +454,7 @@ final class Store {
 
     private static void fetchIcon(Context c, Entry e) {
         if (e.iconUrl == null) return;
+        if (hasBundledIcon(c, e.id)) return; // bundled store icon: nothing to download
         File f = iconFile(c, e.id);
         if (f.isFile()) return;
         byte[] b = bytes(e.iconUrl, MAX_ICON);
@@ -466,7 +467,30 @@ final class Store {
         write(f, b);
     }
 
+    // ---- bundled store icons (begin) ----
+    /** The icon shipped in the APK at assets/store-icons/<id>.png, or null if there isn't one. */
+    private static Bitmap bundledIcon(Context c, String id) {
+        if (id == null || !id.matches("[A-Za-z0-9._-]+")) return null;
+        try (InputStream in = c.getAssets().open(ICONS + "/" + id + ".png")) {
+            return BitmapFactory.decodeStream(in);
+        } catch (IOException | OutOfMemoryError | RuntimeException e) {
+            return null;
+        }
+    }
+
+    private static boolean hasBundledIcon(Context c, String id) {
+        if (id == null || !id.matches("[A-Za-z0-9._-]+")) return false;
+        try (InputStream in = c.getAssets().open(ICONS + "/" + id + ".png")) {
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+    // ---- bundled store icons (end) ----
+
     private static Bitmap icon(Context c, String id) {
+        Bitmap bundled = bundledIcon(c, id); // bundled store icon first
+        if (bundled != null) return bundled;
         File f = iconFile(c, id);
         if (!f.isFile()) return null;
         try {
