@@ -125,7 +125,15 @@
   function onKey(e) {
     if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || !enabled()) return;
     var cur = doc.activeElement;
-    if (cur === doc.body || cur === doc.documentElement) cur = null;
+    // Focus sometimes lands on a container (the WebView can focus one when it first gets focus).
+    // That isn't a real stop, so start from the first thing inside it, or from the top.
+    if (cur && (cur === doc.body || cur === doc.documentElement || !cur.matches(FOCUSABLE) || !usable(cur))) {
+      var inside = cur === doc.body || cur === doc.documentElement ? [] : cur.querySelectorAll(FOCUSABLE);
+      var pick = null;
+      for (var j = 0; j < inside.length && !pick; j++) if (usable(inside[j])) pick = inside[j];
+      if (pick && DIRS[e.key]) { e.preventDefault(); move(pick); return; }
+      cur = null;
+    }
     if (e.key === 'Enter') {
       // Make Select work on anything focusable (a div with tabindex, say), like a click.
       if (cur && !NATIVE_CLICK.test(cur.tagName) && !cur.isContentEditable) { e.preventDefault(); cur.click(); }
@@ -144,6 +152,25 @@
     window.scrollBy({ left: step[0] * window.innerWidth, top: step[1] * window.innerHeight, behavior: 'smooth' });
   }
   window.addEventListener('keydown', onKey, false); // bubbling, on window: the page's own handlers go first
+
+  // Remember the last real stop, and put focus back on it when the app (re)gains focus, so the remote
+  // always has a highlighted element instead of an invisible container or nothing at all.
+  var lastStop = null;
+  doc.addEventListener('focusin', function (e) {
+    var t = e.target;
+    if (t && t.matches && t.matches(FOCUSABLE) && usable(t)) lastStop = t;
+  }, true);
+  function settle() {
+    if (!enabled()) return;
+    var a = doc.activeElement;
+    if (a && a !== doc.body && a !== doc.documentElement && a.matches(FOCUSABLE) && usable(a)) return;
+    var target = lastStop && doc.contains(lastStop) && usable(lastStop) ? lastStop : null;
+    if (!target) { var auto = doc.querySelector('[autofocus]'); if (auto && usable(auto)) target = auto; }
+    if (!target) target = first(candidates());
+    if (target) try { target.focus({ preventScroll: true }); } catch (x) { target.focus(); }
+  }
+  window.addEventListener('focus', function () { setTimeout(settle, 0); });
+  window.__mtvSettle = settle;
 
   // ---- remote buttons WebAppActivity forwards ------------------------------------------------
   window.__mtvBack = function () {

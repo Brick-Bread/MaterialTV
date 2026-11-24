@@ -246,6 +246,10 @@ public class WebAppActivity extends Activity {
         public void onPageCommitVisible(WebView view, String url) {
             inject(view, url);
             if (!failed) reveal();
+            // Give the page Android focus, then let the helper put DOM focus on a real element
+            // (a focus() the page made before the WebView had focus gets lost otherwise).
+            view.requestFocus();
+            view.postDelayed(() -> view.evaluateJavascript("window.__mtvSettle && window.__mtvSettle()", null), 250);
         }
 
         @Override
