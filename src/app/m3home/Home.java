@@ -916,7 +916,11 @@ public class Home extends Activity {
         card.addView(badge, blp);
         storeBadges.put(e.id, new Object[] { badge, item });
         showBadge(e.id);
-        tile.setOnClickListener(v -> showStoreDetail(item));
+        // Appstore apps keep the small sheet (it hands over to Amazon's installer); the rest get a full page.
+        tile.setOnClickListener(v -> {
+            if (e.appstore()) showStoreDetail(item);
+            else startActivity(new Intent(this, StoreDetailActivity.class).putExtra(StoreDetailActivity.EXTRA_ID, e.id));
+        });
         return tile;
     }
 

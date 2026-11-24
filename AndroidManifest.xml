@@ -73,6 +73,13 @@
             android:exported="false" />
 
         <activity
+            android:name=".StoreDetailActivity"
+            android:theme="@style/M3Home"
+            android:excludeFromRecents="true"
+            android:screenOrientation="landscape"
+            android:exported="false" />
+
+        <activity
             android:name=".DeadlinesActivity"
             android:theme="@style/M3Home"
             android:excludeFromRecents="true"

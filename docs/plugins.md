@@ -259,7 +259,9 @@ MaterialTV's catalog ([docs/store.json](store.json)) can list plugins next to ap
   "manifest": "https://brick-bread.github.io/MaterialTV/plugins/examples/world-clocks.json" }
 ```
 
-`manifest` must be https. Installed plugins drop out of the row (they're managed in *Settings > Plugins*).
+`manifest` must be https. Optional `long_description`, `screenshots`, `license` and `website` fill the
+plugin's full-screen page, as for apps (see [apps.md](apps.md)). Installed plugins drop out of the row
+(they're managed in *Settings > Plugins*).
 Open a pull request to suggest one.
 
 ---
