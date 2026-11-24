@@ -547,7 +547,7 @@ public class Home extends Activity {
 
     /** Over a picture background, a soft halo in the background tone keeps titles readable. */
     private void shadow(TextView t) {
-        if (imageBg) t.setShadowLayer(dp(8), 0, dp(1), M3.alpha(M3.BACKGROUND, 0xCC));
+        if (imageBg) t.setShadowLayer(dp(3), 0, dp(1), M3.lightMode ? 0x66FFFFFF : 0x99000000); // small, so it never shows as a box
     }
 
     /** M3 Expressive focus: a springy scale up, a calm settle back. */
