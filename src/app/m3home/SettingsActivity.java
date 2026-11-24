@@ -58,6 +58,9 @@ public class SettingsActivity extends Activity {
     private static final String[] ROW_IDS = { "favourites", "recents", "apps" };
     private static final String[] ROW_NAMES = { "Favourites", "Recently used", "All apps" };
     private static final String[] ROW_SHORT = { "Favourites", "Recent", "Apps" };
+    /** Every row with a Show toggle: the three above plus the app store's Get apps. */
+    private static final String[] ALL_ROW_IDS = { "favourites", "recents", "apps", "store" };
+    private static final String[] ALL_ROW_NAMES = { "Favourites", "Recently used", "All apps", "Get apps row" };
     private static final int[][] ROW_ORDERS = { { 0, 1, 2 }, { 0, 2, 1 }, { 1, 0, 2 }, { 1, 2, 0 }, { 2, 0, 1 }, { 2, 1, 0 } };
     private static final String[] TILE_SIZES = { "compact", "normal", "large" };
     private static final String[] TILE_NAMES = { "Compact", "Normal", "Large" };
@@ -308,14 +311,18 @@ public class SettingsActivity extends Activity {
 
         header("Home screen");
         choice("Row order", orderNames(), this::rowOrderIndex, i -> {
-            List<String> order = new ArrayList<>();
-            for (int k : ROW_ORDERS[i]) order.add(ROW_IDS[k]);
+            // The three app rows swap places; Get apps keeps its own slot.
+            List<String> order = fullRowOrder();
+            int k = 0;
+            for (int j = 0; j < order.size(); j++) {
+                if (Arrays.asList(ROW_IDS).contains(order.get(j))) order.set(j, ROW_IDS[ROW_ORDERS[i][k++]]);
+            }
             saveRows(order, shownRows());
             lookChanged(false, false);
         });
-        for (int i = 0; i < ROW_IDS.length; i++) {
-            final String id = ROW_IDS[i];
-            toggle("Show " + ROW_NAMES[i], null, () -> shownRows().contains(id), v -> {
+        for (int i = 0; i < ALL_ROW_IDS.length; i++) {
+            final String id = ALL_ROW_IDS[i];
+            toggle("Show " + ALL_ROW_NAMES[i], null, () -> shownRows().contains(id), v -> {
                 List<String> shown = shownRows();
                 if (v && !shown.contains(id)) shown.add(id);
                 if (!v) shown.remove(id);
@@ -521,6 +528,13 @@ public class SettingsActivity extends Activity {
         toggle("Check automatically", "Once a day; you choose when to install",
                 () -> Prefs.on(this, Updater.AUTO),
                 v -> Prefs.of(this).edit().putBoolean(Updater.AUTO, v).apply());
+        link("Refresh app store", "The Get apps list and the latest versions", () -> {
+            Toast.makeText(this, "Refreshing the app store…", Toast.LENGTH_SHORT).show();
+            new Thread(() -> {
+                String msg = Store.refresh(getApplicationContext());
+                runOnUiThread(() -> Toast.makeText(this, msg, Toast.LENGTH_LONG).show());
+            }, "m3home-store-refresh").start();
+        });
 
         header("Fire TV settings");
         link("Network", "Wi-Fi and Ethernet", () -> open(new Intent(Settings.ACTION_WIFI_SETTINGS)));
@@ -587,14 +601,14 @@ public class SettingsActivity extends Activity {
         List<String> out = new ArrayList<>();
         for (String s : Prefs.homeRows(this).split(",")) {
             String id = s.trim();
-            if (Arrays.asList(ROW_IDS).contains(id) && !out.contains(id)) out.add(id);
+            if (Arrays.asList(ALL_ROW_IDS).contains(id) && !out.contains(id)) out.add(id);
         }
         return out;
     }
 
     private List<String> fullRowOrder() {
         List<String> order = shownRows();
-        for (String id : ROW_IDS) if (!order.contains(id)) order.add(id);
+        for (String id : ALL_ROW_IDS) if (!order.contains(id)) order.add(id);
         return order;
     }
 
@@ -605,7 +619,8 @@ public class SettingsActivity extends Activity {
     }
 
     private int rowOrderIndex() {
-        List<String> order = fullRowOrder();
+        List<String> order = new ArrayList<>(fullRowOrder());
+        order.retainAll(Arrays.asList(ROW_IDS)); // Get apps isn't part of the three-row order
         for (int i = 0; i < ROW_ORDERS.length; i++) {
             boolean same = true;
             for (int k = 0; k < 3; k++) if (!ROW_IDS[ROW_ORDERS[i][k]].equals(order.get(k))) same = false;

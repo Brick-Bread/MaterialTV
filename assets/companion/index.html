@@ -86,6 +86,15 @@ details[open] summary::after{content:"\25B4"}
       <div id="favs"></div>
       <div class="f"><select id="favAdd" aria-label="App to add"></select><button id="favAddBtn">Add to favourites</button></div>
     </div>
+    <h2>Your apps</h2>
+    <div class="card">
+      <p class="note">Apps you add here show in the TV's Get apps row, ready to install. Use a GitHub repo (owner/name) that publishes APKs in its releases, or an https link straight to an APK.</p>
+      <div id="custom"></div>
+      <div class="f"><input type="text" id="caName" placeholder="Name (e.g. My player)" maxlength="40" aria-label="App name">
+        <input type="text" id="caSrc" placeholder="owner/name or https://…/app.apk" maxlength="500" aria-label="GitHub repo or APK link" autocapitalize="off" autocorrect="off" spellcheck="false">
+        <button id="caAdd">Add app</button></div>
+    </div>
+
     <div class="card"><details id="hiddenBox"><summary><span id="hiddenSum">Hidden apps</span></summary><div id="hidden"></div></details></div>
 
     <h2>Colours</h2>
@@ -155,7 +164,7 @@ details[open] summary::after{content:"\25B4"}
 'use strict';
 var K = new URLSearchParams(location.search).get('k') || '';
 var LOST = 'Lost the connection to the TV. Is the QR screen still open?';
-var ROW_NAMES = { favourites: 'Favourites', recents: 'Recently used', apps: 'All apps' };
+var ROW_NAMES = { favourites: 'Favourites', recents: 'Recently used', apps: 'All apps', store: 'Get apps' };
 var WIDGET_NAMES = [['weather', 'Weather', 'Your town and the temperature'], ['deadlines', 'Deadlines', 'Your next deadlines'],
   ['countdown', 'Countdown', 'One big countdown to a date'], ['nowplaying', 'Now playing', "What's playing, when an app shares it"],
   ['tailscale', 'Tailscale', 'Online status and tailnet address']];
@@ -279,6 +288,13 @@ function renderCfg() {
     return row(a.label, a.hidden ? 'Hidden' : '', sw(a.hidden, 'data-hide="' + esc(a.pkg) + '" aria-label="Hide ' + esc(a.label) + '"'));
   }).join('');
 
+  // Your apps (the Get apps row)
+  var custom = (C.store && C.store.custom) || [];
+  $('custom').innerHTML = custom.length ? custom.map(function (a, i) {
+    var src = a.repo ? 'github.com/' + a.repo : a.url;
+    return row(a.name, src + (a.pkg ? ' · ' + a.pkg : ''), '<button class="ic" data-cdel="' + i + '" aria-label="Remove ' + esc(a.name) + '">&#10005;</button>');
+  }).join('') : '<p class="note">None yet.</p>';
+
   // Colours
   $('accents').innerHTML = C.accents.map(function (a) {
     return '<button class="dot" data-accent="' + esc(a.id) + '" aria-pressed="' + (a.id === C.accent) + '">'
@@ -367,6 +383,10 @@ document.addEventListener('click', function (ev) {
       f[i] = f[k]; f[k] = x;
     }
     saveCfg({ favourites: f });
+  } else if (d.cdel) {
+    var cl = customList();
+    cl.splice(+d.cdel, 1);
+    saveCfg({ store: { custom: cl } });
   } else if (d.hide) {
     h = C.apps.filter(function (a) { return a.hidden; }).map(function (a) { return a.pkg; });
     var at = h.indexOf(d.hide);
@@ -386,6 +406,24 @@ document.addEventListener('click', function (ev) {
     var tp = { screensaver: { themes: {} } }; tp.screensaver.themes[d.theme] = !C.screensaver.themes[d.theme];
     saveCfg(tp);
   }
+});
+
+function customList() {
+  return ((C.store && C.store.custom) || []).map(function (a) {
+    var o = { id: a.id, name: a.name };
+    if (a.repo) o.repo = a.repo; else o.url = a.url;
+    return o;
+  });
+}
+$('caAdd').addEventListener('click', function () {
+  var name = $('caName').value.trim(), src = $('caSrc').value.trim(), app = { name: name };
+  src = src.replace(/^https:\/\/github\.com\/([^\/]+\/[^\/]+?)\/?$/, '$1');
+  if (!name) { snack('Give the app a name', true); return; }
+  if (/^[A-Za-z0-9][A-Za-z0-9-]{0,38}\/[A-Za-z0-9._-]{1,100}$/.test(src)) app.repo = src;
+  else if (/^https:\/\/\S+$/.test(src) && src.length <= 500) app.url = src;
+  else { snack('Use a GitHub repo (owner/name) or a link starting with https://', true); return; }
+  if (customList().length >= 30) { snack('That is the most apps you can add (30)', true); return; }
+  saveCfg({ store: { custom: customList().concat([app]) } }).then(function () { $('caName').value = ''; $('caSrc').value = ''; });
 });
 
 $('favAddBtn').addEventListener('click', function () {

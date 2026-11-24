@@ -38,6 +38,13 @@
 - **Reversible setup.** Optional debloat and privacy, SmartTube and Tailscale, set up from your phone or computer. Every change is recorded and can be undone.
 - **No account, no tracking.** No analytics, no ads, no servers of its own. Plain Java, no Gradle, one small library (ZXing).
 
+## What's new in 1.10.0
+
+- **Get apps: a little app store on Home.** A new row offers well-known TV apps. Open-source ones (SmartTube, Jellyfin, Kodi, VLC, Moonlight, LocalSend, Tailscale, and music apps like Spotube, SimpMusic, Metrolist and RadioDroid) download straight from their makers' official releases and install after you confirm; MaterialTV checks each download is the app it claims to be. Big names with no direct download (Spotify, YouTube, Netflix, Disney+, BBC iPlayer and more) open their Fire TV app store page.
+- **Updates for store apps.** Apps you installed from Get apps show an **Update** badge when their makers release a new version.
+- **Add your own apps from your phone.** On the phone page, under **Your apps**, add any GitHub repo that publishes APKs, or an https link to an APK. It appears in Get apps, ready to install.
+- **Your choice.** Hide the row with **Show Get apps row** in Settings > Customise; refresh the list from Settings > System. The catalog is [docs/store.json](docs/store.json).
+
 ## What's new in 1.9.0
 
 - **Make Home yours.** Choose which rows show (Favourites, Recently used, All apps) and in what order, and pick compact, normal or large tiles.
