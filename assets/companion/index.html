@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<title>MaterialTV</title>
+<style>
+:root{color-scheme:dark;--bg:#141218;--s1:#1D1B20;--s2:#2B2930;--s3:#36343B;--p:#D0BCFF;--op:#381E72;--pc:#4F378B;--opc:#EADDFF;--sc:#4A4458;--osc:#E8DEF8;--on:#E6E0E9;--v:#CAC4D0;--o:#938F99;--ov:#49454F;--err:#F2B8B5}
+/*M3VARS*/
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:var(--bg)}
+body{margin:0 auto;max-width:640px;background:var(--bg);color:var(--on);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:0 16px calc(96px + env(safe-area-inset-bottom))}
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:18px 0 10px}
+h1{font-weight:400;font-size:26px;margin:0}
+.sub{color:var(--v);margin:2px 0 0;font-size:14px}
+.tabs{display:flex;gap:8px;margin-top:14px;background:var(--s1);border-radius:999px;padding:4px}
+.tabs a{flex:1;text-align:center;padding:10px 0;border-radius:999px;color:var(--v);text-decoration:none;font-weight:500;min-height:44px}
+.tabs a[aria-current=page]{background:var(--sc);color:var(--osc)}
+h2{font-size:14px;letter-spacing:.02em;color:var(--p);font-weight:600;margin:28px 4px 10px}
+.card{background:var(--s1);border-radius:24px;padding:6px 16px}
+.card+.card{margin-top:12px}
+.row{display:flex;gap:10px;align-items:center;min-height:60px;padding:8px 0;border-bottom:1px solid var(--ov)}
+.row:last-child{border-bottom:0}
+.row .t{flex:1;min-width:0}
+.row .t b{display:block;font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .t small{display:block;color:var(--v);font-size:13px}
+.blk{padding:12px 0;border-bottom:1px solid var(--ov)}
+.blk:last-child{border-bottom:0}
+.lbl{display:block;margin-bottom:8px}
+.note{color:var(--v);font-size:14px;margin:8px 0}
+.hide{display:none!important}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer;border:0;border-radius:999px;min-height:44px;padding:10px 20px;font-weight:500;background:var(--s2);color:var(--on)}
+button:disabled{opacity:.4}
+button.p{background:var(--p);color:var(--op)}
+button.ic{width:44px;height:44px;min-width:44px;padding:0;font-size:18px;line-height:1;background:transparent;color:var(--v)}
+button.ic:active{background:var(--s2)}
+button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.sw{position:relative;width:52px;min-width:52px;height:32px;min-height:32px;padding:0;border-radius:16px;background:var(--s3);border:2px solid var(--o)}
+.sw::after{content:"";position:absolute;top:6px;left:6px;width:16px;height:16px;border-radius:50%;background:var(--o);transition:all .15s}
+.sw[aria-checked=true]{background:var(--p);border-color:var(--p)}
+.sw[aria-checked=true]::after{left:24px;top:2px;width:24px;height:24px;background:var(--op)}
+.seg{display:flex;flex-wrap:wrap;border:1px solid var(--o);border-radius:999px;overflow:hidden}
+.seg button{flex:1 1 0;border-radius:0;background:transparent;padding:10px 6px;font-size:14px;color:var(--on);border-left:1px solid var(--o);min-width:0}
+.seg button:first-child{border-left:0}
+.seg button[aria-pressed=true]{background:var(--sc);color:var(--osc)}
+.seg button[aria-pressed=true]::before{content:"\2713\00a0"}
+select,input[type=text],input[type=date],input[type=time]{width:100%;min-height:48px;background:var(--s2);border:1px solid var(--ov);border-radius:14px;padding:10px 12px;color:var(--on)}
+input[type=range]{width:100%;accent-color:var(--p);height:32px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:12px}
+.dot{display:flex;flex-direction:column;align-items:center;gap:6px;background:transparent;padding:4px 0;font-size:12px;font-weight:400;color:var(--v);min-height:0}
+.dot i{display:block;width:44px;height:44px;border-radius:50%;border:3px solid transparent;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)}
+.dot[aria-pressed=true]{color:var(--on)}
+.dot[aria-pressed=true] i{border-color:var(--on);outline:2px solid var(--bg);outline-offset:-5px}
+.f{display:grid;gap:10px;padding:12px 0}
+.preview{display:block;width:100%;max-height:180px;object-fit:cover;border-radius:16px;margin-top:10px}
+#snack{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translate(-50%,140%);max-width:calc(100% - 32px);background:var(--on);color:var(--bg);padding:14px 18px;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.4);transition:transform .2s,visibility .2s;visibility:hidden;z-index:10;font-size:15px}
+#snack.on{transform:translate(-50%,0);visibility:visible}
+#snack.bad{background:var(--err);color:#410E0B}
+details summary{cursor:pointer;list-style:none;min-height:56px;display:flex;align-items:center;justify-content:space-between}
+details summary::after{content:"\25BE";color:var(--v)}
+details[open] summary::after{content:"\25B4"}
+.save{position:sticky;bottom:calc(12px + env(safe-area-inset-bottom));margin-top:20px}
+.save button{width:100%;min-height:52px;box-shadow:0 4px 12px rgba(0,0,0,.35)}
+</style>
+</head>
+<body>
+<header>
+  <h1>MaterialTV</h1>
+  <p class="sub">Changes go to your Fire TV straight away</p>
+  <nav class="tabs"><a href="#customise" id="tabC">Customise</a><a href="#deadlines" id="tabD">Deadlines</a></nav>
+</header>
+
+<main id="customise">
+  <p class="note" id="loading">Loading from the TV…</p>
+  <div id="cfg" class="hide">
+    <h2>Home screen</h2>
+    <div class="card">
+      <div id="rows"></div>
+      <div class="blk"><span class="lbl">Tile size</span><div class="seg" id="tile"></div></div>
+    </div>
+
+    <h2>Favourites</h2>
+    <div class="card">
+      <div id="favs"></div>
+      <div class="f"><select id="favAdd" aria-label="App to add"></select><button id="favAddBtn">Add to favourites</button></div>
+    </div>
+    <div class="card"><details id="hiddenBox"><summary><span id="hiddenSum">Hidden apps</span></summary><div id="hidden"></div></details></div>
+
+    <h2>Colours</h2>
+    <div class="card">
+      <div class="blk"><span class="lbl">Accent colour</span><div class="grid" id="accents"></div></div>
+      <div class="blk"><span class="lbl">Light or dark</span><div class="seg" id="mode"></div></div>
+      <div class="blk"><span class="lbl">Text size</span><div class="seg" id="text"></div></div>
+    </div>
+
+    <h2>Background</h2>
+    <div class="card">
+      <div class="blk"><span class="lbl">Style</span><div class="seg" id="bgKind"></div></div>
+      <div class="blk" id="bgSolid"><span class="lbl">Colour</span><div class="grid" id="bgColors"></div>
+        <label class="row" style="border:0"><span class="t"><b>Any colour</b></span><input type="color" id="bgPick" style="width:56px;height:44px;border:0;background:none;padding:0"></label></div>
+      <div class="blk" id="bgWall"><label class="lbl" for="bgWallSel">Picture</label><select id="bgWallSel"></select>
+        <p class="note" id="bgWallNone">No wallpapers downloaded yet. Switch one on under Screensaver below.</p></div>
+      <div class="blk" id="bgSliders">
+        <label class="lbl" for="bgDim">Dim <span id="bgDimV"></span></label><input type="range" id="bgDim" min="0" max="80" step="5">
+        <label class="lbl" for="bgBlur">Blur <span id="bgBlurV"></span></label><input type="range" id="bgBlur" min="0" max="100" step="5">
+      </div>
+      <div class="blk"><span class="lbl">Your own picture</span>
+        <p class="note">Pick a photo; it's shrunk on your phone and sent to the TV.</p>
+        <input type="file" id="file" accept="image/*" class="hide">
+        <button id="fileBtn" class="p">Choose a picture</button>
+        <img id="preview" class="preview hide" alt="">
+      </div>
+    </div>
+
+    <h2>Widgets</h2>
+    <div class="card" id="widgets"></div>
+
+    <h2>Screensaver</h2>
+    <div class="card">
+      <div class="blk"><span class="lbl">Style</span><div class="seg" id="ssMode"></div></div>
+      <div class="blk"><label class="lbl" for="ssSecs">Picture time</label><select id="ssSecs"></select></div>
+      <div class="blk"><span class="lbl">Show</span><div class="seg" id="ssMedia"></div></div>
+      <div id="ssToggles"></div>
+    </div>
+    <div class="card" id="themes"></div>
+    <div class="card">
+      <div id="bedRow"></div>
+      <div class="f" id="bedTimes" style="grid-template-columns:1fr 1fr">
+        <label>Starts<input type="time" id="bedStart"></label>
+        <label>Ends<input type="time" id="bedEnd"></label>
+      </div>
+    </div>
+  </div>
+</main>
+
+<main id="deadlines" class="hide">
+  <h2>Deadlines</h2>
+  <div class="card"><div id="list"></div>
+    <div class="f"><input type="text" id="dt" placeholder="What is due" maxlength="60" aria-label="What is due">
+      <input type="date" id="dd" aria-label="Date"><button id="addBtn">Add deadline</button></div></div>
+  <h2>Big countdown</h2>
+  <div class="card"><div class="f">
+    <input type="text" id="ct" placeholder="Countdown to (e.g. Christmas)" maxlength="60" aria-label="Countdown to">
+    <input type="date" id="cd" aria-label="Countdown date"><button id="clrBtn">Remove countdown</button></div></div>
+  <h2>Weather town</h2>
+  <div class="card"><div class="f"><input type="text" id="pl" placeholder="Town or city" maxlength="80" aria-label="Weather town"></div></div>
+  <div class="save"><button class="p" id="saveBtn">Save to TV</button></div>
+</main>
+
+<div id="snack" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+var K = new URLSearchParams(location.search).get('k') || '';
+var LOST = 'Lost the connection to the TV. Is the QR screen still open?';
+var ROW_NAMES = { favourites: 'Favourites', recents: 'Recently used', apps: 'All apps' };
+var WIDGET_NAMES = [['weather', 'Weather', 'Your town and the temperature'], ['deadlines', 'Deadlines', 'Your next deadlines'],
+  ['countdown', 'Countdown', 'One big countdown to a date'], ['nowplaying', 'Now playing', "What's playing, when an app shares it"],
+  ['tailscale', 'Tailscale', 'Online status and tailnet address']];
+var C = null, D = { deadlines: [] }, rowOrder = [], pollTimer = 0, snackTimer = 0;
+
+function $(id) { return document.getElementById(id); }
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+function hexOk(c) { return typeof c === 'string' && /^#[0-9a-fA-F]{6}$/.test(c) ? c : '#000000'; }
+function url(path) { return path + '?k=' + encodeURIComponent(K); }
+function hhmm(m) { m = Math.max(0, Math.min(1439, m | 0)); return ('0' + Math.floor(m / 60)).slice(-2) + ':' + ('0' + m % 60).slice(-2); }
+function mins(s) { var p = /^(\d{1,2}):(\d{2})/.exec(s || ''); return p ? (+p[1]) * 60 + (+p[2]) : null; }
+
+function snack(msg, bad) {
+  var s = $('snack');
+  s.textContent = msg || '';
+  s.className = 'on' + (bad ? ' bad' : '');
+  clearTimeout(snackTimer);
+  snackTimer = setTimeout(function () { s.className = bad ? 'bad' : ''; }, bad ? 5000 : 2500);
+}
+
+function post(path, body, type) {
+  return fetch(url(path), {
+    method: 'POST',
+    headers: { 'Content-Type': type || 'application/json' },
+    body: type ? body : JSON.stringify(body)
+  }).then(function (r) {
+    return r.json().catch(function () {
+      return { ok: false, message: r.status === 413 ? 'That is too big for the TV.' : r.status === 403
+        ? 'This link has expired. Scan the QR code on the TV again.' : 'The TV said no (' + r.status + ').' };
+    });
+  });
+}
+
+/* ---- Customise -------------------------------------------------------------------------- */
+
+function saveCfg(part) {
+  return post('/api/config', part).then(function (j) {
+    snack(j.message, !j.ok);
+    return loadCfg();
+  }).catch(function () { snack(LOST, true); });
+}
+
+function loadCfg() {
+  return fetch(url('/api/config')).then(function (r) {
+    if (r.status === 403) throw new Error('This link has expired. Scan the QR code on the TV again.');
+    if (!r.ok) throw new Error('The TV said no (' + r.status + ').');
+    return r.json();
+  }).then(function (j) {
+    C = j;
+    renderCfg();
+    $('loading').classList.add('hide');
+    $('cfg').classList.remove('hide');
+  }).catch(function (e) {
+    $('loading').textContent = e && e.message && e.message.indexOf('TV') >= 0 ? e.message : LOST;
+  });
+}
+
+function applyColors(c) {
+  if (!c) return;
+  var root = document.documentElement.style;
+  Object.keys(c).forEach(function (k) { if (/^[a-z0-9]{1,4}$/.test(k)) root.setProperty('--' + k, hexOk(c[k])); });
+  document.documentElement.style.colorScheme = C.themeMode === 'light' ? 'light' : 'dark';
+}
+
+function sw(on, attrs) {
+  return '<button class="sw" role="switch" aria-checked="' + (on ? 'true' : 'false') + '" ' + attrs + '></button>';
+}
+function row(title, sub, right) {
+  return '<div class="row"><div class="t"><b>' + esc(title) + '</b>' + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</div>' + right + '</div>';
+}
+function seg(el, options, current, pick) {
+  el.innerHTML = options.map(function (o, i) {
+    return '<button data-i="' + i + '" aria-pressed="' + (o[0] === current) + '">' + esc(o[1]) + '</button>';
+  }).join('');
+  el.onclick = function (ev) {
+    var b = ev.target.closest('button[data-i]');
+    if (b && b.getAttribute('aria-pressed') !== 'true') pick(options[+b.dataset.i][0]);
+  };
+}
+function label(pkg) {
+  for (var i = 0; i < C.apps.length; i++) if (C.apps[i].pkg === pkg) return C.apps[i].label;
+  return pkg;
+}
+
+function renderCfg() {
+  applyColors(C.colors);
+
+  // Home rows: shown ones in their order, then the hidden ones.
+  rowOrder = C.rows.filter(function (r) { return ROW_NAMES[r]; });
+  Object.keys(ROW_NAMES).forEach(function (r) { if (rowOrder.indexOf(r) < 0) rowOrder.push(r); });
+  $('rows').innerHTML = rowOrder.map(function (r, i) {
+    var on = C.rows.indexOf(r) >= 0;
+    return '<div class="row">' + sw(on, 'data-row="' + esc(r) + '" aria-label="Show ' + esc(ROW_NAMES[r]) + '"')
+      + '<div class="t"><b>' + esc(ROW_NAMES[r]) + '</b><small>' + (on ? 'Row ' + (C.rows.indexOf(r) + 1) : 'Hidden') + '</small></div>'
+      + '<button class="ic" data-up="' + i + '" aria-label="Move up"' + (i ? '' : ' disabled') + '>&#9650;</button>'
+      + '<button class="ic" data-down="' + i + '" aria-label="Move down"' + (i < rowOrder.length - 1 ? '' : ' disabled') + '>&#9660;</button></div>';
+  }).join('');
+  seg($('tile'), [['compact', 'Compact'], ['normal', 'Normal'], ['large', 'Large']], C.tileSize, function (v) { saveCfg({ tileSize: v }); });
+
+  // Favourites
+  var favs = C.favourites;
+  $('favs').innerHTML = favs.length ? favs.map(function (p, i) {
+    return '<div class="row"><div class="t"><b>' + esc(label(p)) + '</b></div>'
+      + '<button class="ic" data-fup="' + i + '" aria-label="Move up"' + (i ? '' : ' disabled') + '>&#9650;</button>'
+      + '<button class="ic" data-fdown="' + i + '" aria-label="Move down"' + (i < favs.length - 1 ? '' : ' disabled') + '>&#9660;</button>'
+      + '<button class="ic" data-fdel="' + i + '" aria-label="Remove">&#10005;</button></div>';
+  }).join('') : '<p class="note">No favourites yet. Add one below.</p>';
+  var others = C.apps.filter(function (a) { return favs.indexOf(a.pkg) < 0; });
+  $('favAdd').innerHTML = others.length ? others.map(function (a) {
+    return '<option value="' + esc(a.pkg) + '">' + esc(a.label) + '</option>';
+  }).join('') : '<option value="">Every app is a favourite</option>';
+  $('favAddBtn').disabled = !others.length;
+
+  var hiddenCount = C.apps.filter(function (a) { return a.hidden; }).length;
+  $('hiddenSum').textContent = 'Hide apps from All apps' + (hiddenCount ? ' (' + hiddenCount + ' hidden)' : '');
+  $('hidden').innerHTML = C.apps.map(function (a) {
+    return row(a.label, a.hidden ? 'Hidden' : '', sw(a.hidden, 'data-hide="' + esc(a.pkg) + '" aria-label="Hide ' + esc(a.label) + '"'));
+  }).join('');
+
+  // Colours
+  $('accents').innerHTML = C.accents.map(function (a) {
+    return '<button class="dot" data-accent="' + esc(a.id) + '" aria-pressed="' + (a.id === C.accent) + '">'
+      + '<i style="background:' + hexOk(a.color) + '"></i>' + esc(a.name) + '</button>';
+  }).join('');
+  seg($('mode'), [['dark', 'Dark'], ['light', 'Light']], C.themeMode, function (v) { saveCfg({ themeMode: v }); });
+  seg($('text'), [['small', 'Small'], ['normal', 'Normal'], ['large', 'Large']], C.textSize, function (v) { saveCfg({ textSize: v }); });
+
+  // Background
+  var bg = C.bg;
+  seg($('bgKind'), [['gradient', 'Gradient'], ['solid', 'Colour'], ['wallpaper', 'Wallpaper'], ['custom', 'Your picture']], bg.kind,
+    function (v) { saveCfg({ bg: { kind: v } }); });
+  $('bgSolid').classList.toggle('hide', bg.kind !== 'solid');
+  $('bgWall').classList.toggle('hide', bg.kind !== 'wallpaper');
+  $('bgSliders').classList.toggle('hide', bg.kind !== 'wallpaper' && bg.kind !== 'custom');
+  $('bgColors').innerHTML = C.solidPresets.map(function (c) {
+    return '<button class="dot" data-bgc="' + hexOk(c) + '" aria-pressed="' + (hexOk(c).toUpperCase() === hexOk(bg.color).toUpperCase())
+      + '" aria-label="' + hexOk(c) + '"><i style="background:' + hexOk(c) + '"></i></button>';
+  }).join('');
+  $('bgPick').value = hexOk(bg.color).toLowerCase();
+  var walls = C.wallpapers || [];
+  $('bgWallSel').classList.toggle('hide', !walls.length);
+  $('bgWallNone').classList.toggle('hide', walls.length > 0);
+  $('bgWallSel').innerHTML = (walls.some(function (w) { return w.id === bg.wallpaper; }) ? '' : '<option value="">Choose a picture</option>')
+    + walls.map(function (w) {
+      return '<option value="' + esc(w.id) + '"' + (w.id === bg.wallpaper ? ' selected' : '') + '>' + esc(w.label) + '</option>';
+    }).join('');
+  $('bgDim').value = bg.dim; $('bgDimV').textContent = bg.dim + '%';
+  $('bgBlur').value = bg.blur; $('bgBlurV').textContent = bg.blur + '%';
+
+  // Widgets
+  $('widgets').innerHTML = WIDGET_NAMES.map(function (w) {
+    return row(w[1], w[2], sw(!!C.widgets[w[0]], 'data-widget="' + w[0] + '" aria-label="' + esc(w[1]) + '"'));
+  }).join('');
+
+  // Screensaver
+  var ss = C.screensaver;
+  seg($('ssMode'), [['rotate', 'Rotate all'], ['clock', 'Clock'], ['shapes', 'Shapes'], ['slideshow', 'Slideshow']], ss.mode,
+    function (v) { saveCfg({ screensaver: { mode: v } }); });
+  $('ssSecs').innerHTML = [[10, '10 seconds'], [15, '15 seconds'], [20, '20 seconds'], [30, '30 seconds'], [60, '1 minute']].map(function (o) {
+    return '<option value="' + o[0] + '"' + (o[0] === ss.seconds ? ' selected' : '') + '>' + o[1] + '</option>';
+  }).join('');
+  seg($('ssMedia'), [['both', 'Stills and live'], ['stills', 'Stills'], ['live', 'Live']], ss.media,
+    function (v) { saveCfg({ screensaver: { media: v } }); });
+  $('ssToggles').innerHTML = row('Clock and widgets', 'On the screensaver', sw(ss.info, 'data-ss="info" aria-label="Clock and widgets"'));
+  var busy = false;
+  $('themes').innerHTML = Object.keys(ss.themes).map(function (t) {
+    var st = (ss.themeStatus && ss.themeStatus[t]) || '';
+    if (/…$/.test(st)) busy = true;
+    var name = t.charAt(0).toUpperCase() + t.slice(1) + ' wallpapers';
+    return row(name, st, sw(!!ss.themes[t], 'data-theme="' + esc(t) + '" aria-label="' + esc(name) + '"'));
+  }).join('');
+  $('bedRow').innerHTML = row('Bedtime', 'The screensaver turns into a calm sleep scene', sw(ss.bedtime, 'data-ss="bedtime" aria-label="Bedtime"'));
+  $('bedTimes').classList.toggle('hide', !ss.bedtime);
+  $('bedStart').value = hhmm(ss.bedStart);
+  $('bedEnd').value = hhmm(ss.bedEnd);
+
+  // Downloads in progress: check again shortly.
+  clearTimeout(pollTimer);
+  if (busy) pollTimer = setTimeout(loadCfg, 3000);
+}
+
+function shownRows() {
+  return rowOrder.filter(function (r) { return C.rows.indexOf(r) >= 0; });
+}
+
+document.addEventListener('click', function (ev) {
+  if (!C) return;
+  var b = ev.target.closest('button');
+  if (!b || b.disabled) return;
+  var d = b.dataset, i, f, h;
+  if (d.row) {
+    var on = C.rows.indexOf(d.row) < 0;
+    saveCfg({ rows: rowOrder.filter(function (r) { return r === d.row ? on : C.rows.indexOf(r) >= 0; }) });
+  } else if (d.up || d.down) {
+    i = +(d.up || d.down);
+    var j = d.up ? i - 1 : i + 1, o = rowOrder.slice(), t = o[i];
+    o[i] = o[j]; o[j] = t; rowOrder = o;
+    saveCfg({ rows: shownRows() });
+  } else if (d.fup || d.fdown || d.fdel) {
+    f = C.favourites.slice();
+    if (d.fdel) f.splice(+d.fdel, 1);
+    else {
+      i = +(d.fup || d.fdown);
+      var k = d.fup ? i - 1 : i + 1, x = f[i];
+      f[i] = f[k]; f[k] = x;
+    }
+    saveCfg({ favourites: f });
+  } else if (d.hide) {
+    h = C.apps.filter(function (a) { return a.hidden; }).map(function (a) { return a.pkg; });
+    var at = h.indexOf(d.hide);
+    if (at >= 0) h.splice(at, 1); else h.push(d.hide);
+    saveCfg({ hidden: h });
+  } else if (d.accent) {
+    if (d.accent !== C.accent) saveCfg({ accent: d.accent });
+  } else if (d.bgc) {
+    saveCfg({ bg: { kind: 'solid', color: d.bgc } });
+  } else if (d.widget) {
+    var wp = { widgets: {} }; wp.widgets[d.widget] = !C.widgets[d.widget];
+    saveCfg(wp);
+  } else if (d.ss) {
+    var sp = { screensaver: {} }; sp.screensaver[d.ss] = !C.screensaver[d.ss];
+    saveCfg(sp);
+  } else if (d.theme) {
+    var tp = { screensaver: { themes: {} } }; tp.screensaver.themes[d.theme] = !C.screensaver.themes[d.theme];
+    saveCfg(tp);
+  }
+});
+
+$('favAddBtn').addEventListener('click', function () {
+  var p = $('favAdd').value;
+  if (p) saveCfg({ favourites: C.favourites.concat([p]) });
+});
+$('bgPick').addEventListener('change', function () { saveCfg({ bg: { kind: 'solid', color: this.value } }); });
+$('bgWallSel').addEventListener('change', function () { if (this.value) saveCfg({ bg: { kind: 'wallpaper', wallpaper: this.value } }); });
+['bgDim', 'bgBlur'].forEach(function (id) {
+  var el = $(id);
+  el.addEventListener('input', function () { $(id + 'V').textContent = el.value + '%'; });
+  el.addEventListener('change', function () {
+    var part = { bg: {} }; part.bg[id === 'bgDim' ? 'dim' : 'blur'] = +el.value;
+    saveCfg(part);
+  });
+});
+$('ssSecs').addEventListener('change', function () { saveCfg({ screensaver: { seconds: +this.value } }); });
+['bedStart', 'bedEnd'].forEach(function (id) {
+  $(id).addEventListener('change', function () {
+    var m = mins(this.value);
+    if (m == null) return;
+    var part = { screensaver: {} }; part.screensaver[id] = m;
+    saveCfg(part);
+  });
+});
+
+/* ---- Your own picture: shrink to 1920 px JPEG on the phone, then send -------------------- */
+
+$('fileBtn').addEventListener('click', function () { $('file').click(); });
+$('file').addEventListener('change', function () {
+  var file = this.files && this.files[0];
+  this.value = '';
+  if (!file) return;
+  var btn = $('fileBtn');
+  btn.disabled = true;
+  btn.textContent = 'Preparing…';
+  shrink(file).then(function (blob) {
+    if (blob.size > 8 * 1024 * 1024) throw new Error('That picture is too big.');
+    var p = $('preview');
+    if (p.src) URL.revokeObjectURL(p.src);
+    p.src = URL.createObjectURL(blob);
+    p.classList.remove('hide');
+    btn.textContent = 'Sending to the TV…';
+    return post('/api/background', blob, 'image/jpeg');
+  }).then(function (j) {
+    snack(j.message, !j.ok);
+    return loadCfg();
+  }).catch(function (e) {
+    snack(e && e.message && e.message.indexOf('picture') >= 0 ? e.message : LOST, true);
+  }).then(function () {
+    btn.disabled = false;
+    btn.textContent = 'Choose a picture';
+  });
+});
+
+function shrink(file) {
+  return new Promise(function (resolve, reject) {
+    var src = URL.createObjectURL(file), img = new Image();
+    img.onload = function () {
+      URL.revokeObjectURL(src);
+      var w = img.naturalWidth, h = img.naturalHeight;
+      if (!w || !h) { reject(new Error("Couldn't read that picture.")); return; }
+      var s = Math.min(1, 1920 / Math.max(w, h));
+      var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+      var cv = document.createElement('canvas');
+      cv.width = cw; cv.height = ch;
+      var g = cv.getContext('2d');
+      g.fillStyle = '#000';
+      g.fillRect(0, 0, cw, ch);
+      g.drawImage(img, 0, 0, cw, ch);
+      cv.toBlob(function (b) { if (b) resolve(b); else reject(new Error("Couldn't read that picture.")); }, 'image/jpeg', 0.88);
+    };
+    img.onerror = function () { URL.revokeObjectURL(src); reject(new Error("Couldn't read that picture.")); };
+    img.src = src;
+  });
+}
+
+/* ---- Deadlines (same /api/data and /api/save as before) --------------------------------- */
+
+function draw() {
+  $('list').innerHTML = D.deadlines.length ? D.deadlines.map(function (d, i) {
+    return row(d.title, d.date, '<button data-del="' + i + '">Remove</button>');
+  }).join('') : '<p class="note">No deadlines yet.</p>';
+}
+$('list').addEventListener('click', function (ev) {
+  var b = ev.target.closest('button[data-del]');
+  if (b) { D.deadlines.splice(+b.dataset.del, 1); draw(); snack('Removed. Press Save to TV.'); }
+});
+$('addBtn').addEventListener('click', function () {
+  var t = $('dt').value.trim(), d = $('dd').value;
+  if (!t || !d) { snack('Add a name and a date first', true); return; }
+  D.deadlines.push({ title: t, date: d });
+  D.deadlines.sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+  $('dt').value = '';
+  draw();
+  snack('Added. Press Save to TV.');
+});
+$('clrBtn').addEventListener('click', function () { $('ct').value = ''; $('cd').value = ''; });
+$('saveBtn').addEventListener('click', function () {
+  var body = { deadlines: D.deadlines, place: $('pl').value };
+  if ($('ct').value.trim() && $('cd').value) body.countdown = { title: $('ct').value.trim(), date: $('cd').value };
+  post('/api/save', body).then(function (j) { snack(j.message, !j.ok); }).catch(function () { snack(LOST, true); });
+});
+function loadData() {
+  fetch(url('/api/data')).then(function (r) { return r.json(); }).then(function (j) {
+    D.deadlines = j.deadlines || [];
+    if (j.countdown) { $('ct').value = j.countdown.title; $('cd').value = j.countdown.date; }
+    $('pl').value = j.place || '';
+    draw();
+  }).catch(function () { snack(LOST, true); });
+}
+
+/* ---- Tabs ------------------------------------------------------------------------------- */
+
+function route() {
+  var dl = location.hash === '#deadlines';
+  $('customise').classList.toggle('hide', dl);
+  $('deadlines').classList.toggle('hide', !dl);
+  if (dl) { $('tabD').setAttribute('aria-current', 'page'); $('tabC').removeAttribute('aria-current'); }
+  else { $('tabC').setAttribute('aria-current', 'page'); $('tabD').removeAttribute('aria-current'); }
+}
+window.addEventListener('hashchange', function () { route(); window.scrollTo(0, 0); });
+route();
+loadCfg();
+loadData();
+</script>
+</body>
+</html>
