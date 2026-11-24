@@ -44,6 +44,7 @@
 - **Updates for store apps.** Apps you installed from Get apps show an **Update** badge when their makers release a new version.
 - **Add your own apps from your phone.** On the phone page, under **Your apps**, add any GitHub repo that publishes APKs, or an https link to an APK. It appears in Get apps, ready to install.
 - **Your choice.** Hide the row with **Show Get apps row** in Settings > Customise; refresh the list from Settings > System. The catalog is [docs/store.json](docs/store.json).
+- **Make your own apps.** Publish an Android TV app in a GitHub release, or build a MaterialTV web app (a full-screen HTML page with D-pad focus handling, your theme colours and a small `window.materialtv` bridge). See the [developer guide](docs/apps.md) and the [Hello TV sample](docs/apps/sample/).
 
 ## What's new in 1.9.0
 

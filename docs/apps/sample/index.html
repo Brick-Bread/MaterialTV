@@ -1,0 +1,225 @@
+<!doctype html>
+<!--
+  Hello TV: the sample MaterialTV web app (docs/apps.md).
+  Install it from Get apps > Hello TV on a Fire TV running MaterialTV, or add
+  https://brick-bread.github.io/MaterialTV/apps/sample/manifest.json under Your apps on the phone page.
+  It also opens in an ordinary browser: the arrow keys work there too, with the default colours.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hello TV</title>
+<!-- MaterialTV serves its theme (--mtv-* colours and the font) here, so the first paint is already
+     in your colours. Elsewhere this address never resolves and the fallbacks below are used. -->
+<link rel="stylesheet" href="https://materialtv.invalid/theme.css">
+<style>
+  :root {
+    --bg: var(--mtv-background, #141218);
+    --surface: var(--mtv-surface, #211F26);
+    --surface-high: var(--mtv-surface-high, #2B2930);
+    --on-surface: var(--mtv-on-surface, #E6E0E9);
+    --on-surface-variant: var(--mtv-on-surface-variant, #CAC4D0);
+    --outline-variant: var(--mtv-outline-variant, #49454F);
+    --primary: var(--mtv-primary, #D0BCFF);
+    --on-primary: var(--mtv-on-primary, #381E72);
+    --primary-container: var(--mtv-primary-container, #4F378B);
+    --on-primary-container: var(--mtv-on-primary-container, #EADDFF);
+    --secondary-container: var(--mtv-secondary-container, #4A4458);
+    --on-secondary-container: var(--mtv-on-secondary-container, #E8DEF8);
+    --font: var(--mtv-font, "Google Sans Flex", system-ui, sans-serif);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    background: radial-gradient(70vw 60vh at 85% -10%, color-mix(in srgb, var(--primary) 14%, transparent), transparent 70%), var(--bg);
+    color: var(--on-surface);
+    font-family: var(--font);
+    overflow: hidden;
+    /* TV-safe margins: keep content away from the edges of the screen. */
+    padding: 5vh 5vw;
+    display: flex;
+    flex-direction: column;
+    gap: 4vh;
+  }
+  header { display: flex; justify-content: space-between; align-items: flex-end; }
+  h1 { margin: 0; font-size: 6vh; font-weight: 600; letter-spacing: -0.02em; }
+  .sub { color: var(--on-surface-variant); font-size: 2.6vh; margin-top: .6vh; }
+  .clock { text-align: right; }
+  .time { font-size: 11vh; font-weight: 500; line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+  .date { color: var(--on-surface-variant); font-size: 2.6vh; margin-top: 1vh; }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3vh 2.4vw; flex: 1; align-content: start; }
+  .card {
+    appearance: none; border: 0; text-align: left; font: inherit; color: inherit; cursor: pointer;
+    background: var(--surface-high); border-radius: 3.2vh; padding: 3vh 2vw;
+    display: flex; flex-direction: column; gap: 1vh; min-height: 18vh;
+    transition: transform .18s ease, background-color .18s ease, border-radius .18s ease;
+    outline: none;
+  }
+  .card .icon { font-size: 4.6vh; line-height: 1; }
+  .card .name { font-size: 3vh; font-weight: 600; }
+  .card .hint { font-size: 2.2vh; color: var(--on-surface-variant); }
+  .card:focus-visible, .card:focus {
+    background: var(--primary-container); color: var(--on-primary-container);
+    transform: scale(1.05); border-radius: 4.4vh;
+    box-shadow: 0 0 0 .5vh var(--primary);
+  }
+  .card:focus .hint { color: var(--on-primary-container); }
+
+  footer { color: var(--on-surface-variant); font-size: 2.2vh; }
+  kbd { background: var(--surface-high); border-radius: 1vh; padding: .2vh .8vh; font: inherit; }
+
+  /* A sheet that Back closes (it listens for materialtv:back). */
+  .sheet[hidden] { display: none; }
+  .sheet { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: grid; place-items: center; }
+  .panel { background: var(--surface); border-radius: 4vh; padding: 4vh 3vw; width: 60vw; max-height: 80vh; overflow: auto; }
+  .panel h2 { margin: 0 0 2vh; font-size: 4vh; font-weight: 500; }
+  .panel p { color: var(--on-surface-variant); font-size: 2.6vh; margin: 0 0 2vh; }
+  .swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.4vh; margin-bottom: 2vh; }
+  .swatch { font-size: 1.9vh; color: var(--on-surface-variant); }
+  .swatch i { display: block; height: 7vh; border-radius: 2vh; margin-bottom: .8vh; border: 1px solid var(--outline-variant); }
+  .btn { appearance: none; border: 0; font: inherit; font-size: 2.6vh; font-weight: 600; border-radius: 999px; padding: 1.4vh 2.4vw;
+    background: var(--primary); color: var(--on-primary); cursor: pointer; outline: none; }
+  .btn:focus { box-shadow: 0 0 0 .5vh var(--on-surface); transform: scale(1.05); }
+  .toast { position: fixed; left: 50%; bottom: 6vh; transform: translateX(-50%); background: var(--on-surface); color: var(--bg);
+    padding: 1.6vh 2.4vw; border-radius: 1.6vh; font-size: 2.4vh; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .toast.on { opacity: 1; }
+</style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Hello, TV</h1>
+      <div class="sub" id="sub">A web app made for MaterialTV</div>
+    </div>
+    <div class="clock">
+      <div class="time" id="time">--:--</div>
+      <div class="date" id="date"></div>
+    </div>
+  </header>
+
+  <main class="grid" id="grid">
+    <button class="card" data-act="hello" autofocus><span class="icon">👋</span><span class="name">Say hello</span><span class="hint">Shows a MaterialTV toast</span></button>
+    <button class="card" data-act="colours"><span class="icon">🎨</span><span class="name">Your colours</span><span class="hint">The theme, from the bridge</span></button>
+    <button class="card" data-act="count"><span class="icon">➕</span><span class="name">Count: <span id="count">0</span></span><span class="hint">Kept in localStorage</span></button>
+    <button class="card" data-act="keys"><span class="icon">🎮</span><span class="name">Remote keys</span><span class="hint">What each button sends</span></button>
+    <button class="card" data-act="about"><span class="icon">ℹ️</span><span class="name">About</span><span class="hint">Versions and permissions</span></button>
+    <button class="card" data-act="exit"><span class="icon">🚪</span><span class="name">Exit</span><span class="hint">materialtv.exit()</span></button>
+  </main>
+
+  <footer>Arrows move · <kbd>Select</kbd> opens · <kbd>Back</kbd> closes a sheet, then the app · hold <kbd>Back</kbd> to leave</footer>
+
+  <div class="sheet" id="sheet" hidden>
+    <div class="panel" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+      <h2 id="sheetTitle"></h2>
+      <div id="sheetBody"></div>
+      <button class="btn" id="sheetClose">Close</button>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+
+<script>
+(function () {
+  'use strict';
+  // window.materialtv exists only inside MaterialTV. Everything here also works without it.
+  var tv = window.materialtv || null;
+  function json(fn) { try { return tv && tv[fn] ? JSON.parse(tv[fn]()) : null; } catch (e) { return null; } }
+  var $ = function (id) { return document.getElementById(id); };
+
+  // Clock
+  function tick() {
+    var d = new Date();
+    $('time').textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    $('date').textContent = d.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' });
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  if (tv) $('sub').textContent = 'Running in MaterialTV ' + tv.version();
+
+  // A counter that survives restarts ("storage" permission).
+  var count = 0;
+  try { count = +localStorage.getItem('count') || 0; } catch (e) {}
+  $('count').textContent = count;
+
+  function toast(text) {
+    if (tv) { tv.toast(text); return; }
+    var t = $('toast');
+    t.textContent = text;
+    t.classList.add('on');
+    clearTimeout(toast.timer);
+    toast.timer = setTimeout(function () { t.classList.remove('on'); }, 2000);
+  }
+
+  // The sheet: Back closes it instead of leaving the app.
+  var lastFocus = null;
+  function openSheet(title, html) {
+    lastFocus = document.activeElement;
+    $('sheetTitle').textContent = title;
+    $('sheetBody').innerHTML = html;
+    $('sheet').hidden = false;
+    $('grid').setAttribute('inert', '');
+    $('sheetClose').focus();
+  }
+  function closeSheet() {
+    $('sheet').hidden = true;
+    $('grid').removeAttribute('inert');
+    if (lastFocus) lastFocus.focus();
+  }
+  $('sheetClose').addEventListener('click', closeSheet);
+  window.addEventListener('materialtv:back', function (e) {
+    if (!$('sheet').hidden) { e.preventDefault(); closeSheet(); }
+  });
+  // In a browser, Escape stands in for Back.
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !$('sheet').hidden) { e.preventDefault(); closeSheet(); }
+  });
+
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  var actions = {
+    hello: function () { toast('Hello from a web app!'); },
+    colours: function () {
+      var t = json('theme');
+      if (!t) { openSheet('Your colours', '<p>Open this inside MaterialTV to see your theme here.</p>'); return; }
+      var roles = ['primary', 'onPrimary', 'primaryContainer', 'onPrimaryContainer', 'secondaryContainer',
+        'surface', 'surfaceHigh', 'onSurface'];
+      openSheet('Your colours', '<p>' + (t.isLight ? 'Light' : 'Dark') + ' theme. Pages get these as --mtv-* CSS variables.</p>'
+        + '<div class="swatches">' + roles.map(function (r) {
+          return '<div class="swatch"><i style="background:' + esc(t[r]) + '"></i>' + esc(r) + '<br>' + esc(t[r]) + '</div>';
+        }).join('') + '</div>');
+    },
+    count: function () {
+      count++;
+      $('count').textContent = count;
+      try { localStorage.setItem('count', count); } catch (e) { toast('No storage permission'); }
+    },
+    keys: function () {
+      var k = json('keys');
+      if (!k) { openSheet('Remote keys', '<p>Arrows send ArrowUp/Down/Left/Right and Select sends Enter.</p>'); return; }
+      openSheet('Remote keys', Object.keys(k).map(function (n) {
+        return '<p><b>' + esc(n) + '</b>: ' + esc(k[n]) + '</p>';
+      }).join(''));
+    },
+    about: function () {
+      var a = json('app');
+      openSheet('About Hello TV', a
+        ? '<p>' + esc(a.name) + ' ' + esc(a.version) + ' (' + esc(a.id) + ')</p><p>Permissions: '
+          + esc(a.permissions.join(', ') || 'none') + '</p><p>MaterialTV ' + esc(tv.version()) + ', bridge api ' + tv.api() + '</p>'
+        : '<p>Not running inside MaterialTV.</p>');
+    },
+    exit: function () { if (tv) tv.exit(); else toast('Exit works inside MaterialTV'); }
+  };
+  $('grid').addEventListener('click', function (e) {
+    var card = e.target.closest('.card');
+    if (card && actions[card.dataset.act]) actions[card.dataset.act]();
+  });
+
+  // Start with the first card focused, so the remote has somewhere to begin.
+  document.querySelector('.card').focus();
+})();
+</script>
+</body>
+</html>

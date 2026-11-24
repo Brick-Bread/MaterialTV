@@ -835,7 +835,7 @@ public class Home extends Activity {
             opts.add("Show the QR code for your phone");
             opts.add("Refresh the app store");
             M3Menu.show(this, "Add an app", "On your phone, open the MaterialTV page and go to Your apps. "
-                    + "Add a GitHub repo (owner/name) or an https link to an APK. It shows up here.", opts, which -> {
+                    + "Add a GitHub repo (owner/name), an https link to an APK, or a MaterialTV web app's manifest link. It shows up here.", opts, which -> {
                 if (which == 0) {
                     startActivity(new Intent(this, DeadlinesActivity.class).putExtra(DeadlinesActivity.EXTRA_CUSTOMISE, true));
                 } else {
@@ -883,6 +883,10 @@ public class Home extends Activity {
             actions.add(() -> {
                 if (!Store.open(this, item.pkg)) Toast.makeText(this, "Couldn't open " + e.name, Toast.LENGTH_SHORT).show();
             });
+        }
+        if (e.webapp() && installed) { // web apps: uninstalling is MaterialTV's job, not Android's
+            labels.add("Uninstall");
+            actions.add(() -> uninstallWebapp(WebApps.idOf(item.pkg), e.name));
         }
         if (e.custom) {
             labels.add("Remove from your apps");
@@ -1172,7 +1176,8 @@ public class Home extends Activity {
 
     private void launch(Apps.App app) {
         try {
-            startActivity(app.launchIntent());
+            // Web apps (Apps.App.webId) open in WebAppActivity with their manifest and the theme.
+            startActivity(app.webId != null ? WebApps.launchIntent(this, app.webId) : app.launchIntent());
             apps.recordLaunch(app.pkg);
             recentsChanged = true;
         } catch (ActivityNotFoundException | SecurityException e) {
@@ -1221,6 +1226,12 @@ public class Home extends Activity {
         }
         labels.add("Change tile picture");
         actions.add(() -> pickTileArt(app));
+        if (app.webId != null) { // a web app has no Android app info: offer Uninstall instead
+            labels.add("Uninstall");
+            actions.add(() -> uninstallWebapp(app.webId, app.label));
+            M3Menu.show(this, app.label, labels, which -> actions.get(which).run());
+            return;
+        }
         labels.add("App info");
         actions.add(() -> {
             try {
@@ -1232,6 +1243,23 @@ public class Home extends Activity {
         });
 
         M3Menu.show(this, app.label, labels, which -> actions.get(which).run());
+    }
+
+    /** Removes a MaterialTV web app (after asking) and reloads the rows. */
+    private void uninstallWebapp(final String id, final String name) {
+        if (id == null) return;
+        List<CharSequence> opts = new ArrayList<>();
+        opts.add("Uninstall " + name);
+        opts.add("Cancel");
+        M3Menu.show(this, "Uninstall " + name + "?", "It leaves All apps and Favourites. You can install it again from Get apps.",
+                opts, which -> {
+                    if (which != 0) return;
+                    WebApps.uninstall(this, id);
+                    Toast.makeText(this, name + " uninstalled", Toast.LENGTH_SHORT).show();
+                    focusPkg = null;
+                    dirty = true;
+                    load();
+                });
     }
 
     /** The grid tile after (or else before) pkg, so focus stays put when pkg is hidden. */

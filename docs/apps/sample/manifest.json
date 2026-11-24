@@ -1,0 +1,13 @@
+{
+  "api": 1,
+  "type": "webapp",
+  "id": "hello-tv",
+  "name": "Hello TV",
+  "author": "MaterialTV",
+  "description": "A tiny sample web app: a clock and a grid you move around with the remote.",
+  "version": "1.0.0",
+  "icon": "icon.png",
+  "start_url": "index.html",
+  "orientation": "landscape",
+  "permissions": ["storage"]
+}

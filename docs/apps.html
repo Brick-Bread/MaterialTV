@@ -1,0 +1,643 @@
+<!doctype html>
+<!--
+  MaterialTV - developer guide (GitHub Pages, served from /docs). The same guide in Markdown is
+  docs/apps.md; keep the two in step. Styles are index.html's, plus a few for code and tables.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Make apps for MaterialTV</title>
+<meta name="description" content="How to make full-screen apps MaterialTV can install on a Fire TV: Android TV apps from GitHub releases, and MaterialTV web apps written in HTML with a D-pad-friendly bridge.">
+<meta name="theme-color" content="#141218">
+<meta property="og:title" content="Make apps for MaterialTV">
+<meta property="og:description" content="Publish an Android TV app or build a MaterialTV web app in HTML, and get it into the Get apps row.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://brick-bread.github.io/MaterialTV/apps.html">
+<link rel="canonical" href="https://brick-bread.github.io/MaterialTV/apps.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%23D0BCFF'/%3E%3Cpath d='M16 46V20l16 14 16-14v26' fill='none' stroke='%23381E72' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --bg: #141218;
+    --surface-1: #1D1B20;
+    --surface-2: #211F26;
+    --surface-3: #2B2930;
+    --surface-4: #36343B;
+    --primary: #D0BCFF;
+    --on-primary: #381E72;
+    --primary-container: #4F378B;
+    --on-primary-container: #EADDFF;
+    --secondary-container: #4A4458;
+    --on-secondary-container: #E8DEF8;
+    --tertiary: #EFB8C8;
+    --on-surface: #E6E0E9;
+    --on-surface-variant: #CAC4D0;
+    --outline: #938F99;
+    --outline-variant: #49454F;
+    --radius-lg: 28px;
+    --radius-md: 24px;
+    --radius-sm: 16px;
+    --font: "Google Sans Flex", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color-scheme: dark;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { transition: none !important; animation: none !important; } }
+  body {
+    margin: 0;
+    font-family: var(--font);
+    font-size: 17px;
+    line-height: 1.6;
+    color: var(--on-surface);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: "";
+    position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background:
+      radial-gradient(60vmax 45vmax at 85% -10%, rgba(208,188,255,.16), transparent 60%),
+      radial-gradient(50vmax 40vmax at -10% 30%, rgba(79,55,139,.22), transparent 65%),
+      radial-gradient(40vmax 30vmax at 70% 110%, rgba(239,184,200,.08), transparent 60%);
+  }
+  a { color: var(--primary); text-underline-offset: 3px; }
+  a:hover { color: var(--on-primary-container); }
+  :focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; border-radius: 8px; }
+  img { max-width: 100%; display: block; }
+  code, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: .92em; }
+  code { background: var(--surface-3); padding: .1em .45em; border-radius: 8px; overflow-wrap: anywhere; }
+  strong { color: var(--on-surface); }
+
+  .skip { position: absolute; left: -9999px; top: 8px; background: var(--primary); color: var(--on-primary); padding: 10px 18px; border-radius: 999px; z-index: 10; }
+  .skip:focus { left: 16px; }
+
+  .wrap { width: 100%; max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+  @media (min-width: 720px) { .wrap { padding: 0 32px; } }
+
+  /* Top bar */
+  header.top { position: sticky; top: 0; z-index: 5; background: rgba(20,18,24,.78); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid rgba(73,69,79,.5); }
+  header.top .wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; column-gap: 16px; min-height: 64px; }
+  .brand, header.top .btn { margin: 12px 0; }
+  .brand { display: flex; align-items: center; gap: 12px; color: var(--on-surface); text-decoration: none; font-weight: 600; font-size: 18px; }
+  .brand-mark { width: 36px; height: 36px; border-radius: 12px; background: var(--primary); display: grid; place-items: center; flex: none; }
+  /* Below 960px the section links become a scrollable chip row under the brand. */
+  nav.links { display: flex; gap: 4px; order: 3; width: calc(100% + 32px); margin: 0 -16px; padding: 0 16px 10px; overflow-x: auto; scrollbar-width: none; }
+  nav.links::-webkit-scrollbar { display: none; }
+  nav.links a { flex: none; color: var(--on-surface-variant); text-decoration: none; padding: 8px 14px; border-radius: 999px; font-size: 15px; font-weight: 500; white-space: nowrap; }
+  nav.links a:hover { background: var(--surface-3); color: var(--on-surface); }
+  @media (min-width: 720px) { nav.links { width: calc(100% + 64px); margin: 0 -32px; padding: 0 32px 10px; } }
+  @media (min-width: 960px) { nav.links { order: 0; width: auto; margin: 0; padding: 0; overflow: visible; } }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; padding: 12px 26px; border-radius: 999px; font: 600 16px/1.2 var(--font); text-decoration: none; border: 0; cursor: pointer; transition: transform .15s ease, background-color .15s ease, box-shadow .15s ease; }
+  .btn:active { transform: scale(.97); }
+  .btn svg { width: 20px; height: 20px; flex: none; }
+  .btn-filled { background: var(--primary); color: var(--on-primary); box-shadow: 0 6px 28px rgba(208,188,255,.25); }
+  .btn-filled:hover { background: #DCCBFF; color: var(--on-primary); box-shadow: 0 8px 36px rgba(208,188,255,.38); }
+  .btn-tonal { background: var(--secondary-container); color: var(--on-secondary-container); }
+  .btn-tonal:hover { background: #564F66; color: var(--on-secondary-container); }
+  .btn-outline { background: transparent; color: var(--primary); border: 1px solid var(--outline); }
+  .btn-outline:hover { background: rgba(208,188,255,.08); color: var(--primary); }
+  .btn-sm { min-height: 40px; padding: 8px 18px; font-size: 14px; }
+
+  /* Hero */
+  .hero { padding: 40px 0 56px; }
+  @media (min-width: 720px) { .hero { padding: 72px 0 56px; } }
+  .hero-grid { display: grid; gap: 48px; align-items: center; }
+  @media (min-width: 960px) { .hero-grid { grid-template-columns: 1.1fr .9fr; } .hero { padding: 104px 0 80px; } }
+  .eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; background: var(--surface-3); color: var(--on-surface-variant); font-size: 14px; font-weight: 500; }
+  .eyebrow .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); }
+  h1 { font-size: clamp(44px, 9vw, 84px); line-height: 1.02; letter-spacing: -0.03em; font-weight: 700; margin: 20px 0 16px; }
+  h1 .accent { color: var(--primary); }
+  .lede { font-size: clamp(18px, 2.4vw, 22px); color: var(--on-surface-variant); max-width: 34em; margin: 0 0 32px; }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; }
+  .hero-meta { margin-top: 24px; font-size: 14px; color: var(--on-surface-variant); display: flex; flex-wrap: wrap; gap: 8px 20px; }
+  .hero-meta span { display: inline-flex; align-items: center; gap: 6px; }
+  .hero-meta svg { width: 16px; height: 16px; color: var(--primary); }
+
+  /* Hero art: a mock TV home screen built from CSS */
+  .tv { background: var(--surface-1); border-radius: var(--radius-lg); padding: 22px; border: 1px solid var(--outline-variant); box-shadow: 0 30px 80px rgba(0,0,0,.45), 0 0 120px rgba(208,188,255,.12); }
+  .tv-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 18px; }
+  .tv-clock { font-size: 44px; font-weight: 600; line-height: 1; letter-spacing: -0.02em; }
+  .tv-date { font-size: 13px; color: var(--on-surface-variant); margin-top: 6px; }
+  .tv-chip { font-size: 12px; padding: 6px 12px; border-radius: 999px; background: var(--surface-3); color: var(--on-surface-variant); }
+  .tv-label { font-size: 12px; color: var(--on-surface-variant); margin: 14px 0 8px; font-weight: 500; }
+  .tv-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+  .tile { aspect-ratio: 16/10; border-radius: 14px; position: relative; }
+  .tile::after { content: ""; position: absolute; left: 10%; bottom: 14%; width: 46%; height: 9%; border-radius: 999px; background: rgba(255,255,255,.55); }
+  .tile.t1 { background: linear-gradient(135deg, #6B4FA8, #3A2766); }
+  .tile.t2 { background: linear-gradient(135deg, #A1385A, #5C1F35); }
+  .tile.t3 { background: linear-gradient(135deg, #2F6B8C, #173B4F); }
+  .tile.t4 { background: linear-gradient(135deg, #7E6A2B, #44391A); }
+  .tile.t5 { background: linear-gradient(135deg, #3F7A55, #1F4230); }
+  .tile.add { background: var(--surface-3); border: 1px dashed var(--outline); }
+  .tile.add::after { display: none; }
+  .tile.focus { outline: 3px solid var(--primary); outline-offset: 3px; transform: translateY(-4px) scale(1.04); border-radius: 18px; box-shadow: 0 10px 30px rgba(208,188,255,.25); }
+
+  /* Sections */
+  section { padding: 56px 0; scroll-margin-top: 112px; }
+  @media (min-width: 960px) { section { scroll-margin-top: 72px; } }
+  @media (min-width: 720px) { section { padding: 80px 0; } }
+  h2 { font-size: clamp(32px, 5vw, 48px); line-height: 1.1; letter-spacing: -0.02em; font-weight: 700; margin: 0 0 12px; }
+  h3 { font-size: 20px; line-height: 1.3; font-weight: 600; margin: 0 0 8px; }
+  .section-intro { color: var(--on-surface-variant); max-width: 40em; margin: 0 0 36px; font-size: 18px; }
+
+  .card { background: var(--surface-2); border-radius: var(--radius-md); padding: 24px; border: 1px solid rgba(73,69,79,.45); min-width: 0; }
+  .card > h3 + .check { margin-top: 4px; }
+  @media (min-width: 720px) { .card { padding: 28px; border-radius: var(--radius-lg); } }
+  .card p { margin: 0; color: var(--on-surface-variant); }
+  .card p + p { margin-top: 10px; }
+
+  /* Download box */
+  .get { display: grid; gap: 16px; margin-bottom: 40px; }
+  @media (min-width: 860px) { .get { grid-template-columns: 1fr 1fr; } }
+  .get .card { background: var(--surface-3); }
+  .code-box { display: flex; flex-direction: column; gap: 10px; }
+  .code-label { font-size: 14px; font-weight: 500; color: var(--on-surface-variant); text-transform: uppercase; letter-spacing: .08em; }
+  .code-value { font-size: clamp(40px, 7vw, 56px); font-weight: 700; letter-spacing: .06em; color: var(--primary); line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .url-line { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .url-line code { max-width: 100%; overflow-x: auto; white-space: nowrap; font-size: clamp(12px, 3.6vw, 15px); padding: 8px 12px; background: var(--surface-1); }
+  .code-box a { overflow-wrap: anywhere; }
+
+  /* Steps */
+  ol.steps { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; counter-reset: step; }
+  ol.steps > li { --badge: 40px; --pad: 18px; counter-increment: step; position: relative; min-width: 0; min-height: calc(var(--badge) + 2 * var(--pad)); background: var(--surface-1); border-radius: var(--radius-md); padding: var(--pad) var(--pad) var(--pad) calc(2 * var(--pad) + var(--badge) - 4px); border: 1px solid rgba(73,69,79,.45); }
+  @media (min-width: 720px) { ol.steps > li { --badge: 48px; --pad: 22px; } }
+  ol.steps > li::before { content: counter(step); position: absolute; left: var(--pad); top: var(--pad); width: var(--badge); height: var(--badge); border-radius: 16px; background: var(--primary-container); color: var(--on-primary-container); display: grid; place-items: center; font-weight: 700; font-size: 20px; }
+  ol.steps h3 { min-height: var(--badge); display: flex; align-items: center; margin-bottom: 4px; }
+  ol.steps p { margin: 0; color: var(--on-surface-variant); }
+  ol.steps ul { margin: 8px 0 0; padding-left: 20px; color: var(--on-surface-variant); }
+  ol.steps ul li + li { margin-top: 4px; }
+  .path { color: var(--on-surface); font-weight: 600; }
+  .note { margin-top: 16px; display: flex; gap: 12px; align-items: flex-start; background: rgba(208,188,255,.08); border: 1px solid rgba(208,188,255,.25); border-radius: var(--radius-sm); padding: 14px 18px; color: var(--on-surface-variant); font-size: 15px; }
+  .note svg { width: 20px; height: 20px; color: var(--primary); flex: none; margin-top: 2px; }
+
+  /* Features */
+  .grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
+  @media (min-width: 640px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 1000px) { .grid.three { grid-template-columns: repeat(3, 1fr); } }
+  .feature .icon { width: 52px; height: 52px; border-radius: 18px; background: var(--secondary-container); color: var(--on-secondary-container); display: grid; place-items: center; margin-bottom: 18px; }
+  .feature .icon svg { width: 26px; height: 26px; }
+  .feature:nth-child(3n+2) .icon { border-radius: 50%; }
+  .feature:nth-child(3n) .icon { border-radius: 14px 26px; }
+  .feature ul { margin: 10px 0 0; padding-left: 20px; color: var(--on-surface-variant); }
+
+  /* Gallery */
+  .gallery { display: grid; gap: 16px; grid-template-columns: 1fr; }
+  @media (min-width: 720px) {
+    .gallery { grid-template-columns: repeat(2, 1fr); }
+    /* Lead shot spans the full row; with an even number of shots, so does the last one, so no card is left alone. */
+    .gallery figure:first-child, .gallery figure:nth-child(even):last-child { grid-column: 1 / -1; }
+  }
+  .gallery figure { margin: 0; min-width: 0; display: flex; flex-direction: column; background: var(--surface-2); border-radius: var(--radius-md); overflow: hidden; border: 1px solid rgba(73,69,79,.45); }
+  .gallery img { width: 100%; height: auto; aspect-ratio: 16/9; object-fit: contain; background: var(--surface-1); }
+  .gallery figcaption { padding: 14px 20px; font-size: 15px; color: var(--on-surface-variant); }
+
+  /* Setup & undo */
+  .split { display: grid; gap: 16px; }
+  @media (min-width: 860px) { .split { grid-template-columns: 1fr 1fr; } }
+  .check { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 10px; }
+  /* Absolutely positioned tick: list items can mix <strong>, text and links freely. */
+  .check li { position: relative; padding-left: 34px; color: var(--on-surface-variant); }
+  .check li::before { content: ""; position: absolute; left: 0; top: .2em; width: 22px; height: 22px; border-radius: 50%; background: var(--primary) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 12.5l4 4 8-9' fill='none' stroke='%23381E72' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/16px no-repeat; }
+  .undo-card { background: linear-gradient(160deg, var(--primary-container), #3A2A63); border: 0; }
+  .undo-card h3, .undo-card p, .undo-card .check li, .undo-card strong { color: var(--on-primary-container); }
+  .undo-card .path { color: #fff; }
+  .undo-card a { color: #fff; }
+  .undo-card .check li::before { background-color: var(--on-primary-container); }
+
+  /* FAQ */
+  .faq { display: grid; gap: 12px; }
+  details { background: var(--surface-2); border-radius: var(--radius-md); border: 1px solid rgba(73,69,79,.45); }
+  summary { cursor: pointer; list-style: none; padding: 20px 24px; font-weight: 600; font-size: 18px; display: flex; justify-content: space-between; align-items: center; gap: 16px; border-radius: var(--radius-md); }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: ""; width: 32px; height: 32px; flex: none; border-radius: 50%; background: var(--surface-3) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 10l5 5 5-5' fill='none' stroke='%23D0BCFF' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/20px no-repeat; transition: transform .2s ease; }
+  details[open] summary::after { transform: rotate(180deg); }
+  summary:hover { background: var(--surface-3); }
+  details .answer { padding: 0 24px 22px; color: var(--on-surface-variant); }
+  @media (max-width: 599px) { summary { padding: 16px 18px; font-size: 17px; } details .answer { padding: 0 18px 18px; } }
+  details .answer p { margin: 0 0 10px; }
+  details .answer p:last-child { margin-bottom: 0; }
+
+  /* Credits */
+  .credits { display: grid; gap: 12px; grid-template-columns: 1fr; }
+  @media (min-width: 640px) { .credits { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 1000px) { .credits { grid-template-columns: repeat(3, 1fr); } }
+  .credit { background: var(--surface-1); border-radius: 20px; padding: 18px 20px; border: 1px solid rgba(73,69,79,.45); }
+  .credit strong { display: block; font-weight: 600; }
+  .credit span { font-size: 14px; color: var(--on-surface-variant); }
+
+  footer { padding: 40px 0 56px; border-top: 1px solid var(--outline-variant); margin-top: 24px; color: var(--on-surface-variant); font-size: 15px; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 16px 32px; justify-content: space-between; align-items: center; }
+  footer p { margin: 0; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+  /* Developer guide (apps.html) */
+  .doc-hero { padding-bottom: 24px; }
+  .doc-hero h1 { font-size: clamp(40px, 7vw, 68px); }
+  .sub-h { font-size: 24px; margin: 48px 0 14px; }
+  .after-table { color: var(--on-surface-variant); margin: 14px 0 0; max-width: 52em; }
+  .code { margin: 14px 0 0; background: var(--surface-1); border: 1px solid rgba(73,69,79,.45); border-radius: var(--radius-sm); }
+  .code pre { margin: 0; padding: 16px 18px; font: 500 14.5px/1.55 ui-monospace, "Cascadia Mono", Consolas, monospace; color: var(--on-surface); white-space: pre; overflow-x: auto; scrollbar-width: thin; scrollbar-color: var(--outline-variant) transparent; font-variant-ligatures: none; }
+  ol.steps .code, .card .code { margin-top: 12px; }
+  ol.steps p + p, ol.steps ul + p { margin-top: 10px; }
+  .table { overflow-x: auto; border-radius: var(--radius-md); border: 1px solid rgba(73,69,79,.45); background: var(--surface-2); margin-top: 8px; }
+  .table + .table { margin-top: 16px; }
+  table { border-collapse: collapse; width: 100%; font-size: 15.5px; }
+  th, td { text-align: left; vertical-align: top; padding: 12px 16px; border-bottom: 1px solid rgba(73,69,79,.45); }
+  th { color: var(--on-surface); font-weight: 600; background: var(--surface-3); white-space: nowrap; }
+  td { color: var(--on-surface-variant); }
+  td:first-child { white-space: nowrap; color: var(--on-surface); }
+  tbody tr:last-child td { border-bottom: 0; }
+  .doc-split { margin-top: 24px; }
+  .doc-split .card p + p, .doc-split .card .code + p { margin-top: 10px; }
+  #catalog .code { margin-top: 16px; }
+  #catalog .table { margin-top: 16px; }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<!-- Icons (Material Symbols paths, Apache-2.0) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-github" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 00-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02a9.58 9.58 0 015 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0012 2z"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><path fill="currentColor" d="M11 17h2v-6h-2v6zm1-8q.425 0 .713-.288T13 8q0-.425-.288-.713T12 7q-.425 0-.713.288T11 8q0 .425.288.713T12 9zm0 13q-2.075 0-3.9-.788t-3.175-2.137q-1.35-1.35-2.137-3.175T2 12q0-2.075.788-3.9t2.137-3.175q1.35-1.35 3.175-2.137T12 2q2.075 0 3.9.788t3.175 2.137q1.35 1.35 2.138 3.175T22 12q0 2.075-.788 3.9t-2.137 3.175q-1.35 1.35-3.175 2.138T12 22z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path fill="currentColor" d="M9.55 18l-5.7-5.7 1.425-1.425L9.55 15.15l9.175-9.175L20.15 7.4 9.55 18z"/></symbol>
+  <symbol id="i-android" viewBox="0 0 24 24"><path fill="currentColor" d="M1 18q.225-2.675 1.638-4.925T6.4 9.5L4.55 6.3q-.15-.225-.075-.475T4.8 5.45q.2-.125.45-.05t.4.3L7.5 8.9Q9.65 8 12 8t4.5.9l1.85-3.2q.15-.225.4-.3t.45.05q.25.125.325.375t-.075.475L17.6 9.5q2.35 1.325 3.763 3.575T23 18H1zm6-2.75q.525 0 .888-.363T8.25 14q0-.525-.362-.888T7 12.75q-.525 0-.888.363T5.75 14q0 .525.363.888T7 15.25zm10 0q.525 0 .888-.363T18.25 14q0-.525-.362-.888T17 12.75q-.525 0-.888.363T15.75 14q0 .525.363.888T17 15.25z"/></symbol>
+  <symbol id="i-web" viewBox="0 0 24 24"><path fill="currentColor" d="M8 18l-6-6 6-6 1.425 1.425-4.6 4.6L9.4 16.6 8 18zm8 0l-1.425-1.425 4.6-4.6L14.6 7.4 16 6l6 6-6 6z"/></symbol>
+</svg>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="./" aria-label="MaterialTV home page">
+      <span class="brand-mark" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 64 64"><path d="M14 48V18l18 16 18-16v30" fill="none" stroke="#381E72" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+      MaterialTV
+    </a>
+    <nav class="links" aria-label="Sections">
+      <a href="#android">Android apps</a>
+      <a href="#webapps">Web apps</a>
+      <a href="#remote">Remote</a>
+      <a href="#bridge">Bridge</a>
+      <a href="#theme">Theme</a>
+      <a href="#catalog">Get listed</a>
+    </nav>
+    <a class="btn btn-tonal btn-sm" href="https://github.com/Brick-Bread/MaterialTV">
+      <svg aria-hidden="true"><use href="#i-github"/></svg><span>GitHub</span>
+    </a>
+  </div>
+</header>
+
+<main id="main">
+  <div class="hero doc-hero" id="top">
+    <div class="wrap">
+      <span class="eyebrow"><span class="dot"></span>For developers</span>
+      <h1>Make apps for <span class="accent">MaterialTV</span></h1>
+      <p class="lede">The Get apps row installs two kinds of full-screen app: Android TV apps from a GitHub release, and MaterialTV web apps written in HTML. Here's how to make either and get it in front of everyone.</p>
+      <div class="cta">
+        <a class="btn btn-filled" href="#webapps">Build a web app</a>
+        <a class="btn btn-tonal" href="#android">Publish an Android app</a>
+        <a class="btn btn-outline" href="apps/sample/index.html">Open the sample</a>
+      </div>
+    </div>
+  </div>
+
+  <section id="compare" aria-labelledby="compare-h">
+    <div class="wrap">
+      <h2 id="compare-h">Two ways in</h2>
+      <p class="section-intro">Anyone can add either kind from the phone page (<strong>Your apps</strong>), and either can be listed for everyone in the catalog, <a href="store.json">store.json</a>, with a pull request.</p>
+      <div class="grid">
+        <div class="card feature">
+          <div class="icon"><svg aria-hidden="true"><use href="#i-android"/></svg></div>
+          <h3>Android TV app</h3>
+          <ul>
+            <li>An APK in a GitHub release, or at an https link</li>
+            <li>Kotlin, Java, Flutter: anything that makes an APK</li>
+            <li>Runs as its own Android app and can do anything one can</li>
+            <li>MaterialTV downloads and checks it; Android asks you to confirm</li>
+          </ul>
+        </div>
+        <div class="card feature">
+          <div class="icon"><svg aria-hidden="true"><use href="#i-web"/></svg></div>
+          <h3>MaterialTV web app</h3>
+          <ul>
+            <li>A <code>manifest.json</code> and a web page on any https host</li>
+            <li>HTML, CSS and JavaScript</li>
+            <li>Full screen inside MaterialTV, with the <code>window.materialtv</code> bridge</li>
+            <li>Installs instantly; nothing for Android to install</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="android" aria-labelledby="android-h">
+    <div class="wrap">
+      <h2 id="android-h">Android TV apps</h2>
+      <p class="section-intro">Already have an Android app? A few manifest lines and a release make it installable from Get apps.</p>
+      <ol class="steps">
+        <li>
+          <h3>Make it work on a Fire TV</h3>
+          <ul>
+            <li><strong>minSdk 28 or lower.</strong> Fire OS 7 is Android 9 (API 28); Fire OS 8 is Android 11.</li>
+            <li><strong>32-bit ARM.</strong> Fire TV sticks run 32-bit Android, even on 64-bit chips. Ship an <code>armeabi-v7a</code> or universal APK; an arm64-only APK won't install.</li>
+            <li><strong>No Google Play services.</strong> Fire TV doesn't have them.</li>
+            <li><strong>The remote does everything:</strong> every control is reachable with the D-pad, focus is obvious, Back goes back.</li>
+          </ul>
+        </li>
+        <li>
+          <h3>Add a TV launcher entry and a banner</h3>
+          <p>So MaterialTV and Fire OS list it as a TV app. The banner is 320 × 180 px (xhdpi); tiles use your sharpest launcher icon.</p>
+          <div class="code"><pre tabindex="0">&lt;uses-feature android:name="android.software.leanback" android:required="false" /&gt;
+&lt;uses-feature android:name="android.hardware.touchscreen" android:required="false" /&gt;
+
+&lt;application android:banner="@drawable/banner" android:icon="@mipmap/ic_launcher" ...&gt;
+    &lt;activity android:name=".MainActivity" android:exported="true"&gt;
+        &lt;intent-filter&gt;
+            &lt;action android:name="android.intent.action.MAIN" /&gt;
+            &lt;category android:name="android.intent.category.LEANBACK_LAUNCHER" /&gt;
+        &lt;/intent-filter&gt;
+    &lt;/activity&gt;
+&lt;/application&gt;</pre></div>
+        </li>
+        <li>
+          <h3>Publish a GitHub release</h3>
+          <p>The release's <strong>tag is the version</strong> (<code>v1.4.0</code> or <code>1.4.0</code>). Attach the APK as an asset. MaterialTV picks it like this:</p>
+          <ul>
+            <li>names with <code>arm64</code>, <code>aarch64</code>, <code>x86</code> or <code>x64</code> are skipped;</li>
+            <li>names with <code>armeabi</code>, <code>armv7</code>, <code>arm32</code> or a separate word <code>arm</code> come first, then <code>universal</code>, then any other <code>.apk</code>; <code>debug</code> builds come last;</li>
+            <li>a catalog entry's <code>asset_regex</code> narrows the choice first.</li>
+          </ul>
+          <p>Keep <code>versionName</code> equal to the tag (without the <code>v</code>): Get apps shows <strong>Update</strong> when the tag's numbers are newer than the installed version. Sign every release with the same key, or Android refuses the update.</p>
+        </li>
+        <li>
+          <h3>Try it on your own TV</h3>
+          <p>On the phone page (Home &gt; Get apps &gt; Add an app &gt; QR code), under <strong>Your apps</strong>, add a name and your repo as <code>owner/name</code>, or an https link straight to the APK. Before installing, MaterialTV checks the download is an app and that its package name is the expected one; Android then asks you to confirm.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="webapps" aria-labelledby="webapps-h">
+    <div class="wrap">
+      <h2 id="webapps-h">MaterialTV web apps</h2>
+      <p class="section-intro">A web app is a web page MaterialTV shows full screen, with no browser bars. The remote's arrows move focus for you, the page gets your theme's colours and font, and a small JavaScript bridge, <code>window.materialtv</code>, does the rest.</p>
+
+      <ol class="steps">
+        <li>
+          <h3>Make three files</h3>
+          <p>Put them on any https host; GitHub Pages is free.</p>
+          <div class="code"><pre tabindex="0">my-app/
+  manifest.json
+  index.html
+  icon.png        a square PNG, 256 × 256 or so</pre></div>
+        </li>
+        <li>
+          <h3>Write the manifest</h3>
+          <div class="code"><pre tabindex="0">{
+  "api": 1,
+  "type": "webapp",
+  "id": "my-app",
+  "name": "My App",
+  "author": "You",
+  "description": "What it does, in a sentence.",
+  "version": "1.0.0",
+  "icon": "icon.png",
+  "start_url": "index.html",
+  "orientation": "landscape",
+  "permissions": ["storage"]
+}</pre></div>
+        </li>
+        <li>
+          <h3>Write the page</h3>
+          <p>Plain HTML. The theme stylesheet gives you MaterialTV's colours from the first paint; the fallbacks keep it working in any browser.</p>
+          <div class="code"><pre tabindex="0">&lt;!doctype html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+&lt;meta charset="utf-8"&gt;
+&lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;
+&lt;link rel="stylesheet" href="https://materialtv.invalid/theme.css"&gt;
+&lt;style&gt;
+  body { margin: 0; padding: 5vh 5vw; font-family: var(--mtv-font, sans-serif);
+         background: var(--mtv-background, #141218); color: var(--mtv-on-surface, #E6E0E9); }
+  button { font: inherit; font-size: 3vh; padding: 2vh 3vw; border: 0; border-radius: 3vh;
+           background: var(--mtv-surface-high, #2B2930); color: inherit; }
+  button:focus { background: var(--mtv-primary-container, #4F378B); outline: 3px solid var(--mtv-primary, #D0BCFF); }
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Hello, TV&lt;/h1&gt;
+  &lt;button onclick="window.materialtv &amp;&amp; materialtv.toast('Hi!')" autofocus&gt;Say hi&lt;/button&gt;
+  &lt;button&gt;Another&lt;/button&gt;
+&lt;/body&gt;
+&lt;/html&gt;</pre></div>
+        </li>
+        <li>
+          <h3>Install it</h3>
+          <p>On the phone page under <strong>Your apps</strong>, add the manifest's link, like <code>https://you.github.io/my-app/manifest.json</code>. It appears in Get apps; select it and choose <strong>Install</strong>. It's now in All apps, and can be a favourite like any other app.</p>
+        </li>
+      </ol>
+
+      <div class="note"><svg aria-hidden="true"><use href="#i-info"/></svg><span>A complete example: <a href="apps/sample/index.html">Hello TV</a> (<a href="apps/sample/manifest.json">manifest</a>), with a clock, a focusable grid, the theme colours, a counter kept in <code>localStorage</code> and a sheet that Back closes. It's in Get apps under "Made for MaterialTV", and it runs in a desktop browser too.</span></div>
+
+      <h3 class="sub-h" id="manifest">The manifest</h3>
+      <div class="table"><table>
+        <thead><tr><th>Field</th><th>Required</th><th>Rules</th></tr></thead>
+        <tbody>
+          <tr><td><code>api</code></td><td>yes</td><td><code>1</code></td></tr>
+          <tr><td><code>type</code></td><td>yes</td><td><code>"webapp"</code></td></tr>
+          <tr><td><code>id</code></td><td>yes</td><td>Lowercase letters, digits, <code>.</code> <code>_</code> <code>-</code>; up to 40; starts with a letter or digit. Your app's identity: keep it forever.</td></tr>
+          <tr><td><code>name</code></td><td>yes</td><td>Up to 40 characters. The tile's name.</td></tr>
+          <tr><td><code>author</code></td><td>no</td><td>Up to 60 characters.</td></tr>
+          <tr><td><code>description</code></td><td>no</td><td>Up to 200 characters.</td></tr>
+          <tr><td><code>version</code></td><td>no</td><td>Up to 20 characters, shown in the store.</td></tr>
+          <tr><td><code>icon</code></td><td>no</td><td>PNG, JPEG or WebP, up to 512 KB and 2048 px. Relative to the manifest, or an https link.</td></tr>
+          <tr><td><code>start_url</code></td><td>yes</td><td>The first page. Relative to the manifest, or https on the manifest's origin or one listed in <code>origins</code>.</td></tr>
+          <tr><td><code>origins</code></td><td>no</td><td>Up to 10 more origins the app may navigate to, exactly like <code>"https://api.example.com"</code> (no path).</td></tr>
+          <tr><td><code>orientation</code></td><td>no</td><td><code>"landscape"</code>, the only one supported.</td></tr>
+          <tr><td><code>permissions</code></td><td>no</td><td>Any of <code>"network"</code>, <code>"storage"</code>, <code>"media"</code>. Leaving the field out means <code>["network", "storage"]</code>.</td></tr>
+        </tbody>
+      </table></div>
+      <p class="after-table">The manifest must be served over https. MaterialTV reads it again whenever the app store refreshes (daily, or Settings &gt; System), so a new name, icon or start page reaches everyone. The page itself is always live from your server.</p>
+
+      <h3 class="sub-h" id="permissions">Permissions</h3>
+      <div class="table"><table>
+        <thead><tr><th>Permission</th><th>Without it</th><th>With it</th></tr></thead>
+        <tbody>
+          <tr><td><code>network</code></td><td>The page loads only from the app's own origins (the manifest's, plus <code>origins</code>).</td><td>It can fetch from any https address: APIs, CDNs, images.</td></tr>
+          <tr><td><code>storage</code></td><td><code>localStorage</code>, <code>sessionStorage</code> and Web SQL are off.</td><td>They work and persist.</td></tr>
+          <tr><td><code>media</code></td><td>Audio and video need a click (Select) to start.</td><td>Media can autoplay.</td></tr>
+        </tbody>
+      </table></div>
+      <p class="after-table">Camera, microphone, location, notifications and file pickers are always refused.</p>
+
+      <h3 class="sub-h" id="navigation">Where the app can go</h3>
+      <ul class="check">
+        <li>Only https. <code>http://</code> pages, mixed content, <code>file://</code> and <code>content://</code> are blocked.</li>
+        <li>The main page stays on the app's origins. A link elsewhere asks the viewer whether to open it in the browser; other schemes (<code>intent:</code>, <code>market:</code>, <code>mailto:</code>…) are blocked.</li>
+        <li><code>window.open()</code> and <code>target="_blank"</code> open in the same view, under the same rule.</li>
+        <li>Frames may show any https page, but never get the theme or focus handling, and third-party cookies are off.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="remote" aria-labelledby="remote-h">
+    <div class="wrap">
+      <h2 id="remote-h">The remote</h2>
+      <p class="section-intro">Remote buttons arrive as ordinary keyboard events, plus two MaterialTV events.</p>
+      <div class="table"><table>
+        <thead><tr><th>Button</th><th>What the page gets</th></tr></thead>
+        <tbody>
+          <tr><td>Up, down, left, right</td><td><code>keydown</code> with <code>ArrowUp</code>, <code>ArrowDown</code>, <code>ArrowLeft</code>, <code>ArrowRight</code></td></tr>
+          <tr><td>Select (centre)</td><td><code>keydown</code> with <code>Enter</code></td></tr>
+          <tr><td>Play/pause, rewind, fast-forward</td><td><code>MediaPlayPause</code>, <code>MediaRewind</code>, <code>MediaFastForward</code></td></tr>
+          <tr><td>Menu</td><td>a <code>materialtv:menu</code> event on <code>window</code></td></tr>
+          <tr><td>Back</td><td>a cancelable <code>materialtv:back</code> event on <code>window</code>; if nobody cancels it, <code>history.back()</code>; at the first page, the app closes</td></tr>
+          <tr><td>Hold Back, or Home</td><td>The app closes. Always.</td></tr>
+        </tbody>
+      </table></div>
+
+      <div class="split doc-split">
+        <div class="card">
+          <h3>Spatial navigation</h3>
+          <p>If your page doesn't handle an arrow key, MaterialTV moves focus to the nearest focusable element that way (links, buttons, inputs, <code>[tabindex]</code>), scrolls it into view, and scrolls the page when there's nothing further. Select clicks a focused element that isn't a link, button or input.</p>
+          <p>To handle keys yourself, call <code>event.preventDefault()</code> in a <code>keydown</code> listener on <code>document</code> or an element, or switch it off:</p>
+          <div class="code"><pre tabindex="0">&lt;meta name="materialtv:spatial-navigation" content="off"&gt;
+&lt;!-- or: window.materialtvSpatialNav = false; --&gt;</pre></div>
+        </div>
+        <div class="card">
+          <h3>Back for your own layers</h3>
+          <p>Close a dialog or panel with Back instead of leaving the page:</p>
+          <div class="code"><pre tabindex="0">window.addEventListener('materialtv:back', function (e) {
+  if (dialogIsOpen) {
+    e.preventDefault();
+    closeDialog();
+  }
+});</pre></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="bridge" aria-labelledby="bridge-h">
+    <div class="wrap">
+      <h2 id="bridge-h">The bridge</h2>
+      <p class="section-intro"><code>window.materialtv</code> exists only inside MaterialTV, so check first: <code>if (window.materialtv) { … }</code>. It answers only while the page is on one of the app's origins. Values that aren't simple come back as JSON strings.</p>
+      <div class="table"><table>
+        <thead><tr><th>Call</th><th>Returns / does</th></tr></thead>
+        <tbody>
+          <tr><td><code>materialtv.api()</code></td><td><code>1</code>, the bridge version.</td></tr>
+          <tr><td><code>materialtv.version()</code></td><td>MaterialTV's version, like <code>"1.10.0"</code>.</td></tr>
+          <tr><td><code>materialtv.theme()</code></td><td>JSON: the colour roles as <code>"#RRGGBB"</code> and <code>isLight</code>. Roles: <code>background</code>, <code>surfaceLow</code>, <code>surface</code>, <code>surfaceHigh</code>, <code>surfaceHighest</code>, <code>onSurface</code>, <code>onSurfaceVariant</code>, <code>outline</code>, <code>outlineVariant</code>, <code>primary</code>, <code>onPrimary</code>, <code>primaryContainer</code>, <code>onPrimaryContainer</code>, <code>secondaryContainer</code>, <code>onSecondaryContainer</code>, <code>tertiaryContainer</code>, <code>error</code>.</td></tr>
+          <tr><td><code>materialtv.app()</code></td><td>JSON: this app's <code>id</code>, <code>name</code>, <code>version</code>, <code>permissions</code>.</td></tr>
+          <tr><td><code>materialtv.keys()</code></td><td>JSON: what each remote button sends.</td></tr>
+          <tr><td><code>materialtv.toast(text)</code></td><td>A short MaterialTV message (120 characters, at most one a second).</td></tr>
+          <tr><td><code>materialtv.exit()</code></td><td>Closes the app.</td></tr>
+          <tr><td><code>materialtv.openApp(packageName)</code></td><td>Asks the viewer, then opens that installed Android app. <code>false</code> if it isn't installed.</td></tr>
+          <tr><td><code>materialtv.keepScreenOn(on)</code></td><td>Keeps the screensaver away while <code>true</code>, say during a video.</td></tr>
+        </tbody>
+      </table></div>
+      <div class="code"><pre tabindex="0">var theme = window.materialtv ? JSON.parse(materialtv.theme()) : null;
+if (theme &amp;&amp; theme.isLight) document.body.classList.add('light');</pre></div>
+    </div>
+  </section>
+
+  <section id="theme" aria-labelledby="theme-h">
+    <div class="wrap">
+      <h2 id="theme-h">Look native</h2>
+      <p class="section-intro">Every page on the app's origins gets MaterialTV's colours as CSS variables. They follow the viewer's accent colour and light or dark mode.</p>
+      <div class="split doc-split">
+        <div class="card">
+          <h3>CSS variables</h3>
+          <p><code>--mtv-background</code>, <code>--mtv-surface-low</code>, <code>--mtv-surface</code>, <code>--mtv-surface-high</code>, <code>--mtv-surface-highest</code>, <code>--mtv-on-surface</code>, <code>--mtv-on-surface-variant</code>, <code>--mtv-outline</code>, <code>--mtv-outline-variant</code>, <code>--mtv-primary</code>, <code>--mtv-on-primary</code>, <code>--mtv-primary-container</code>, <code>--mtv-on-primary-container</code>, <code>--mtv-secondary-container</code>, <code>--mtv-on-secondary-container</code>, <code>--mtv-tertiary-container</code>, <code>--mtv-error</code>, <code>--mtv-is-light</code> (<code>0</code> or <code>1</code>) and <code>--mtv-font</code> (Google Sans Flex).</p>
+          <p><code>&lt;html&gt;</code> gets the classes <code>mtv</code> and <code>mtv-dark</code> or <code>mtv-light</code>. Focused elements get a primary ring unless you style <code>:focus</code> yourself.</p>
+        </div>
+        <div class="card">
+          <h3>From the first paint</h3>
+          <p>MaterialTV adds the variables when the page starts drawing. To have them earlier, link the stylesheet it serves at a reserved address. It never resolves anywhere else, so in a normal browser your fallbacks are used.</p>
+          <div class="code"><pre tabindex="0">&lt;link rel="stylesheet" href="https://materialtv.invalid/theme.css"&gt;</pre></div>
+          <p>Also there: <code>font.ttf</code> (Google Sans Flex, SIL OFL) and <code>sdk.js</code> (the focus and Back helper). When all is in place, <code>window</code> gets a <code>materialtv:ready</code> event whose <code>detail</code> is the theme.</p>
+        </div>
+      </div>
+
+      <h3 class="sub-h">Designing for the TV</h3>
+      <ul class="check">
+        <li>The page is about <strong>960 × 540 CSS pixels</strong> on a 1080p Fire TV (device pixel ratio 2). Size with <code>vh</code>/<code>vw</code> or <code>rem</code>.</li>
+        <li>Keep important things 5% away from the edges; some TVs crop them.</li>
+        <li>Make focus loud: a ring, a colour change and a slight scale. There's no mouse and no hover.</li>
+        <li>Text is read from the sofa: 2.5vh (about 14 CSS px) at the very least.</li>
+        <li>Avoid typing. If you must, the Fire TV keyboard opens for a focused <code>&lt;input&gt;</code> on Select.</li>
+        <li>The user agent ends in <code>MaterialTV/&lt;version&gt; MaterialTV-WebApp/1</code>.</li>
+      </ul>
+
+      <h3 class="sub-h">Debugging</h3>
+      <p class="after-table">Build and test in desktop Chrome first: the sample works there with the arrow keys. On the TV, turn on ADB debugging (Settings &gt; My Fire TV &gt; Developer options), run <code>adb connect &lt;tv-ip&gt;</code> on a computer, and open <code>chrome://inspect</code>: running web apps appear there with full DevTools.</p>
+
+      <h3 class="sub-h">Privacy, storage and limits</h3>
+      <ul class="check">
+        <li>Web apps run in their own process with their own web data, apart from MaterialTV and from Android apps. Leaving the app ends that process.</li>
+        <li><strong>Storage is per origin, not per app.</strong> Android 9 can't give each web app its own storage, so two web apps on the same origin (<code>you.github.io/app-one</code> and <code>you.github.io/app-two</code>) share <code>localStorage</code>, cookies and IndexedDB. Give each app its own origin (a custom domain or subdomain), or prefix your keys with your app's id.</li>
+        <li>Uninstalling removes the tile, icon and pins. The web storage stays on the device (it's there again if you reinstall); clearing MaterialTV's data removes it.</li>
+        <li>Pages inside frames can reach <code>window.materialtv</code> too. Don't frame pages you don't trust.</li>
+        <li>Safe Browsing is on, certificate errors are never bypassed, and third-party cookies are off.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="catalog" aria-labelledby="catalog-h">
+    <div class="wrap">
+      <h2 id="catalog-h">Get listed</h2>
+      <p class="section-intro">Everyone's Get apps row comes from <a href="store.json">store.json</a> on this site; the APK carries a copy, <code>assets/store.json</code>, for the first run and offline. Open a pull request on <a href="https://github.com/Brick-Bread/MaterialTV">GitHub</a> that adds one entry to both files.</p>
+      <div class="code"><pre tabindex="0">{ "id": "jellyfin", "name": "Jellyfin", "package": "org.jellyfin.androidtv", "category": "Video",
+  "description": "The Jellyfin media server's Android TV app",
+  "icon_url": "https://example.com/jellyfin-512.png",
+  "source": { "type": "github", "repo": "jellyfin/jellyfin-androidtv",
+              "asset_regex": "^jellyfin-androidtv-.*-release\\.apk$" } }</pre></div>
+
+      <div class="table"><table>
+        <thead><tr><th>Field</th><th>Rules</th></tr></thead>
+        <tbody>
+          <tr><td><code>id</code></td><td>Unique; lowercase letters, digits, <code>.</code> <code>_</code> <code>-</code>; up to 40.</td></tr>
+          <tr><td><code>name</code></td><td>Up to 40 characters.</td></tr>
+          <tr><td><code>package</code></td><td>The APK's package name. MaterialTV refuses a download with any other. Not for web apps.</td></tr>
+          <tr><td><code>category</code></td><td>Up to 30 characters: <code>Popular</code>, <code>Video</code>, <code>Music</code>, <code>Games</code>, <code>Tools</code>, <code>Made for MaterialTV</code>.</td></tr>
+          <tr><td><code>description</code></td><td>Up to 160 characters.</td></tr>
+          <tr><td><code>icon_url</code></td><td>Optional https PNG or JPEG, up to 512 KB and 2048 px.</td></tr>
+          <tr><td><code>source</code></td><td>One of the four types below.</td></tr>
+        </tbody>
+      </table></div>
+
+      <div class="table"><table>
+        <thead><tr><th><code>source.type</code></th><th>Other fields</th><th>Use for</th></tr></thead>
+        <tbody>
+          <tr><td><code>github</code></td><td><code>repo</code> (<code>owner/name</code>), optional <code>asset_regex</code> (a Java regex, up to 200 characters, matched anywhere in the asset's file name)</td><td>APKs in GitHub releases; updates come with each release.</td></tr>
+          <tr><td><code>url</code></td><td><code>url</code> (https link to the APK), <code>version</code></td><td>A fixed download on the maker's own site. Bump both together.</td></tr>
+          <tr><td><code>appstore</code></td><td><code>package</code></td><td>Apps only on the Amazon Appstore: MaterialTV opens their page.</td></tr>
+          <tr><td><code>webapp</code></td><td><code>manifest</code> (https link to the manifest)</td><td>MaterialTV web apps.</td></tr>
+        </tbody>
+      </table></div>
+
+      <div class="code"><pre tabindex="0">{ "id": "hello-tv", "name": "Hello TV", "category": "Made for MaterialTV",
+  "description": "Sample web app: a clock and a remote-friendly grid.",
+  "icon_url": "https://brick-bread.github.io/MaterialTV/apps/sample/icon.png",
+  "source": { "type": "webapp",
+              "manifest": "https://brick-bread.github.io/MaterialTV/apps/sample/manifest.json" } }</pre></div>
+
+      <div class="note"><svg aria-hidden="true"><use href="#i-check"/></svg><span>What gets accepted: the download comes from the maker (their releases or site); it works with the remote; it's free of malware, injected ads and tracking beyond what the official app does; and it says honestly what it is. Web apps should look at home: use the theme variables and make focus obvious. The catalog holds at most 100 apps.</span></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>MaterialTV is free software under the <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL v3.0</a>. Not affiliated with Amazon or Google.</p>
+    <p><a href="./">MaterialTV home</a> · <a href="https://github.com/Brick-Bread/MaterialTV/blob/main/docs/apps.md">This guide in Markdown</a> · <a href="https://github.com/Brick-Bread/MaterialTV/issues">Report an issue</a></p>
+  </div>
+</footer>
+</body>
+</html>
