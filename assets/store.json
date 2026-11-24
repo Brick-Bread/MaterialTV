@@ -38,7 +38,7 @@
       "icon_url": "https://brick-bread.github.io/MaterialTV/store-icons/plutotv.png",
       "description": "Free live TV channels", "source": { "type": "appstore", "package": "tv.pluto.android" } },
 
-    { "id": "spotube", "name": "Spotube", "package": "oss.krtirtho.spotube", "category": "Music",
+    { "id": "spotube", "name": "Spotube", "package": "org.spotube.spotube", "category": "Music",
       "icon_url": "https://brick-bread.github.io/MaterialTV/store-icons/spotube.png",
       "description": "Open-source music player; phone-style app that works with the remote",
       "source": { "type": "github", "repo": "KRTirtho/spotube", "asset_regex": "^Spotube-android-all-arch\\.apk$" } },
