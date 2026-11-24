@@ -185,6 +185,16 @@ final class Apps {
         prefs.edit().putString(key, sb.toString()).apply();
     }
 
+    /** Replaces the favourites with this order. (1.9.0 contract) */
+    void setFavourites(List<String> pkgs) { putList(KEY_FAVS, pkgs); }
+
+    /** Every launchable app as {pkg, label}, without loading icons. (1.9.0 contract stub; WP1 makes it fast.) */
+    List<String[]> labels() {
+        List<String[]> out = new ArrayList<>();
+        for (App a : load()) out.add(new String[] { a.pkg, a.label });
+        return out;
+    }
+
     // ---- hidden from All apps ------------------------------------------------------------
 
     private static final String KEY_HIDDEN = "hidden";

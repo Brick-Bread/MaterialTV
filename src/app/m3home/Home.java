@@ -44,6 +44,8 @@ import java.util.List;
  * chip and Settings button, then Favourites, Recently used and an All apps grid.
  */
 public class Home extends Activity {
+    /** Opens Home with the first favourite picked up, ready to move. (1.9.0 contract) */
+    static final String EXTRA_REORDER = "reorder";
 
     private static final int GRID_COLUMNS = 5;
     private static final int GRID_TILE_DP = 156;
@@ -496,7 +498,9 @@ public class Home extends Activity {
         final TextView label = new TextView(this);
         label.setText(app.label);
         label.setSingleLine(true);
-        label.setEllipsize(TextUtils.TruncateAt.END);
+        label.setEllipsize(TextUtils.TruncateAt.MARQUEE);
+        label.setMarqueeRepeatLimit(-1);
+        label.setHorizontalFadingEdgeEnabled(true);
         label.setGravity(Gravity.CENTER);
         label.setPadding(dp(10), 0, dp(10), Math.round(h * 0.07f));
         style(label, nameSp, 0xE6FFFFFF, M3.MEDIUM);
@@ -521,6 +525,7 @@ public class Home extends Activity {
             morph[0] = a;
             pop(card, has, 1.1f);
             label.setTextColor(has ? 0xFFFFFFFF : 0xE6FFFFFF);
+            label.setSelected(has); // scrolls a long name while the tile is highlighted
             if (has) {
                 focusPkg = app.pkg;
                 focusRow = row;

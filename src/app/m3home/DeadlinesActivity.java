@@ -31,6 +31,8 @@ import java.util.Map;
 
 /** Shows a QR code for the companion site and the current deadlines; the site runs while this is open. */
 public class DeadlinesActivity extends Activity {
+    /** Shows the QR for the full "Customise from your phone" page instead of just deadlines. (1.9.0 contract) */
+    static final String EXTRA_CUSTOMISE = "customise";
     private Companion companion;
     private LinearLayout list;
 

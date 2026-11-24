@@ -463,7 +463,7 @@ final class ScreensaverView extends FrameLayout {
             row.setBackground(M3.rounded(0x66211F26, dp(24)));
             row.setPadding(dp(18), dp(12), dp(22), dp(12));
             lp.setMargins(dp(8), 0, dp(8), 0);
-            if (infoWidgets.getChildCount() >= 4) return; // keep the clock screen calm
+            if (infoWidgets.getChildCount() >= 3) return; // three chips fit the screen and keep it calm
         } else {
             lp.topMargin = dp(10);
         }

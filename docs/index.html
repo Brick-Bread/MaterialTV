@@ -387,7 +387,7 @@
         <article class="card feature">
           <div class="icon" aria-hidden="true"><svg><use href="#i-grid"/></svg></div>
           <h3>Uniform app tiles</h3>
-          <p>Every app gets the same tonal card, coloured from its own icon. Focused tiles spring up with rounder corners and a purple ring. You can swap in your own tile artwork.</p>
+          <p>Every app gets the same tonal card, coloured from its own icon. Focused tiles spring up with rounder corners and a purple ring, and long names scroll so you can read them. You can swap in your own tile artwork.</p>
         </article>
         <article class="card feature">
           <div class="icon" aria-hidden="true"><svg><use href="#i-home"/></svg></div>
@@ -412,7 +412,7 @@
         <article class="card feature">
           <div class="icon" aria-hidden="true"><svg><use href="#i-image"/></svg></div>
           <h3>A screensaver worth watching</h3>
-          <p>A big expressive clock over drifting Material shapes, a pure shapes mode, or a slideshow of your own photos and silent live wallpapers (MP4) with slow pan and zoom.</p>
+          <p>A big expressive clock over drifting Material shapes, a pure shapes mode, or a slideshow of your own photos and silent live wallpapers (MP4) with slow pan and zoom. Abstract, nature, space and city wallpaper themes download when you switch them on and are deleted when you switch them off.</p>
         </article>
         <article class="card feature">
           <div class="icon" aria-hidden="true"><svg><use href="#i-widgets"/></svg></div>
@@ -436,6 +436,15 @@
           <p>New versions come straight from GitHub Releases, checked against a SHA-256 checksum and installed only after you confirm.</p>
         </article>
       </div>
+      <div class="card" style="margin-top:16px">
+        <h3>What's new in 1.8.1</h3>
+        <ul class="check">
+          <li><strong>Wallpaper themes on demand:</strong> the abstract, nature, space and city screensaver pictures download when you switch a theme on in Settings, and are deleted when you switch it off, so they only use space while you want them.</li>
+          <li><strong>Phone setup fixed:</strong> setting up from a phone now installs SmartTube and Tailscale properly, instead of stopping with "Can't open file".</li>
+          <li><strong>Long app names scroll</strong> across their tile when it's focused.</li>
+          <li><strong>Setup wizard layout</strong> no longer cuts off the buttons.</li>
+        </ul>
+      </div>
     </div>
   </section>
 
@@ -445,13 +454,17 @@
       <h2 id="shots-h">Screenshots</h2>
       <p class="section-intro">Captured on a Fire TV Stick.</p>
       <div class="gallery">
-        <figure><img loading="lazy" src="screenshots/home.png" alt="MaterialTV screen with clock, favourites and recently used apps" width="1920" height="1080" onerror="this.closest('figure').remove()"><figcaption>Home screen</figcaption></figure>
-        <figure><img loading="lazy" src="screenshots/settings.png" alt="Settings side sheet opened by holding Home" width="1920" height="1080" onerror="this.closest('figure').remove()"><figcaption>Settings panel (hold Home)</figcaption></figure>
-        <figure><img loading="lazy" src="screenshots/screensaver-clock.png" alt="Clock screensaver over drifting Material shapes" width="1920" height="1080" onerror="this.closest('figure').remove()"><figcaption>Clock screensaver</figcaption></figure>
-        <figure><img loading="lazy" src="screenshots/screensaver-slideshow.png" alt="Slideshow screensaver with a glass card showing time and widgets" width="1920" height="1080" onerror="this.closest('figure').remove()"><figcaption>Slideshow screensaver</figcaption></figure>
-        <figure><img loading="lazy" src="screenshots/sleep.png" alt="Bedtime sleep scene with night sky, moon and dim clock" width="1920" height="1080" onerror="this.closest('figure').remove()"><figcaption>Bedtime sleep scene</figcaption></figure>
-        <figure><img loading="lazy" src="screenshots/setup.png" alt="Fire TV setup wizard" width="1920" height="1080" onerror="this.closest('figure').remove()"><figcaption>Setup wizard</figcaption></figure>
-        <figure><img loading="lazy" src="screenshots/deadlines-qr.png" alt="Deadlines screen with QR code for the phone companion page" width="1920" height="1080" onerror="this.closest('figure').remove()"><figcaption>Deadlines &amp; QR companion</figcaption></figure>
+        <figure><img loading="lazy" src="screenshots/home.png" alt="MaterialTV home screen with clock, Tailscale chip, favourites and all apps" width="1920" height="1080" onerror="this.closest('figure').remove()"><figcaption>Home screen</figcaption></figure>
+        <figure><img loading="lazy" src="screenshots/settings.png" alt="Settings side sheet with sleep timer and bedtime, opened by holding Home" width="1920" height="1080" onerror="this.closest('figure').remove()"><figcaption>Settings panel (hold Home)</figcaption></figure>
+        <figure><img loading="lazy" src="screenshots/screensaver-clock.png" alt="Clock screensaver over drifting Material shapes, with weather, deadline and countdown chips" width="1920" height="1080" onerror="this.closest('figure').remove()"><figcaption>Clock screensaver</figcaption></figure>
+        <figure><img loading="lazy" src="screenshots/screensaver-slideshow.png" alt="Slideshow screensaver with a glass card showing the time, picture name and widgets" width="1920" height="1080" onerror="this.closest('figure').remove()"><figcaption>Slideshow screensaver</figcaption></figure>
+        <figure><img loading="lazy" src="screenshots/sleep.png" alt="Bedtime sleep scene with starry night sky, moon and dim clock" width="1920" height="1080" onerror="this.closest('figure').remove()"><figcaption>Bedtime sleep scene</figcaption></figure>
+        <figure><img loading="lazy" src="screenshots/screensaver-shapes.png" alt="Shapes screensaver with Material shapes behind a glass card with the time and widgets" width="1920" height="1080" onerror="this.closest('figure').remove()"><figcaption>Shapes screensaver</figcaption></figure>
+        <figure><img loading="lazy" src="screenshots/tiles-menu.png" alt="Tile menu with Add to favourites, Hide from All apps, Change tile picture and App info" width="1920" height="1080" onerror="this.closest('figure').remove()"><figcaption>Tile menu (press ≡)</figcaption></figure>
+        <figure><img loading="lazy" src="screenshots/filter.png" alt="Settings with the blue light filter turned on, warming the whole picture" width="1920" height="1080" onerror="this.closest('figure').remove()"><figcaption>Blue light filter</figcaption></figure>
+        <figure><img loading="lazy" src="screenshots/setup-welcome.png" alt="Setup wizard welcome screen listing clean up, privacy, SmartTube and Tailscale, and undo" width="1920" height="1080" onerror="this.closest('figure').remove()"><figcaption>Setup wizard</figcaption></figure>
+        <figure><img loading="lazy" src="screenshots/setup-connect.png" alt="Setup connect screen with a QR code, the TV's address and a pairing code" width="1920" height="1080" onerror="this.closest('figure').remove()"><figcaption>Set up from your phone or computer</figcaption></figure>
+        <figure><img loading="lazy" src="screenshots/deadlines-qr.png" alt="Deadlines and countdown screen with a QR code for the phone companion page" width="1920" height="1080" onerror="this.closest('figure').remove()"><figcaption>Deadlines &amp; QR companion</figcaption></figure>
       </div>
     </div>
   </section>
@@ -500,7 +513,7 @@
         </div>
         <div class="card">
           <h3>Network use is minimal</h3>
-          <p><strong>Weather:</strong> only the coordinates of the town you chose are sent to Open-Meteo. <strong>Updates:</strong> a daily check of this project's GitHub Releases. <strong>Companion page:</strong> served on your home network by the TV itself. <strong>Setup:</strong> SmartTube and Tailscale are downloaded from their official releases only if you pick them. Leave weather unset and there's nothing else to send.</p>
+          <p><strong>Weather:</strong> only the coordinates of the town you chose are sent to Open-Meteo. <strong>Updates:</strong> a daily check of this project's GitHub Releases. <strong>Wallpaper themes:</strong> downloaded from this project's GitHub release only when you switch a theme on. <strong>Companion page:</strong> served on your home network by the TV itself. <strong>Setup:</strong> SmartTube and Tailscale are downloaded from their official releases only if you pick them. Leave weather unset and there's nothing else to send.</p>
         </div>
         <div class="card">
           <h3>Companion page stays local</h3>
@@ -555,7 +568,7 @@
         <details>
           <summary>How do I add my own screensaver pictures or videos?</summary>
           <div class="answer">
-            <p>Copy images or MP4 files to <code>/sdcard/Android/data/app.m3home/files/screensaver/</code>. Use the sub-folders <code>abstract</code>, <code>nature</code>, <code>space</code> and <code>city</code> to get a separate on/off switch for each theme.</p>
+            <p>Copy images or MP4 files to <code>/sdcard/Android/data/app.m3home/files/screensaver/</code>. Use the sub-folders <code>abstract</code>, <code>nature</code>, <code>space</code> and <code>city</code> to get a separate on/off switch for each theme. The built-in theme pictures are downloaded when you switch a theme on and deleted when you switch it off.</p>
           </div>
         </details>
       </div>
@@ -572,6 +585,7 @@
         <div class="credit"><strong><a href="https://fonts.google.com/specimen/Google+Sans+Flex">Google Sans Flex</a></strong><span>Typeface · SIL Open Font License 1.1</span></div>
         <div class="credit"><strong><a href="https://github.com/zxing/zxing">ZXing</a></strong><span>QR code generation · Apache License 2.0</span></div>
         <div class="credit"><strong><a href="https://open-meteo.com/">Open-Meteo</a></strong><span>Free weather forecasts and geocoding</span></div>
+        <div class="credit"><strong><a href="https://commons.wikimedia.org/">Wikimedia Commons</a></strong><span>Screensaver wallpaper pictures · credits in the <a href="https://github.com/Brick-Bread/MaterialTV/releases/tag/wallpapers-v1">wallpapers-v1</a> release</span></div>
         <div class="credit"><strong><a href="https://fonts.google.com/icons">Material Icons</a></strong><span>Icons · Apache License 2.0</span></div>
         <div class="credit"><strong><a href="https://m3.material.io/">Material 3</a></strong><span>Design language the launcher follows</span></div>
       </div>

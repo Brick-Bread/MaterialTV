@@ -5,8 +5,8 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-VERSION_CODE=11
-VERSION_NAME=1.8
+VERSION_CODE=12
+VERSION_NAME=1.8.1
 MIN_SDK=28     # Fire OS 7 (Android 9) and newer
 
 SDK=${ANDROID_HOME:-${ANDROID_SDK_ROOT:-${LOCALAPPDATA:-}/Android/Sdk}}
@@ -19,7 +19,8 @@ AAPT2=$BT/aapt2; [[ -x $AAPT2 ]] || AAPT2=$BT/aapt2.exe
 ZIPALIGN=$BT/zipalign; [[ -x $ZIPALIGN ]] || ZIPALIGN=$BT/zipalign.exe
 echo "sdk: $(basename "$PLATFORM"), build-tools $(basename "$BT")"
 
-rm -rf build
+# Start clean, but keep build/wallpapers (the screensaver bundle for the wallpapers-v1 release).
+find build -mindepth 1 -maxdepth 1 ! -name wallpapers -exec rm -rf {} + 2>/dev/null || true
 mkdir -p build/gen build/classes build/dex
 
 echo "resources"

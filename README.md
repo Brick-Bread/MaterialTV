@@ -38,20 +38,27 @@
 - **Reversible setup.** Optional debloat and privacy, SmartTube and Tailscale, set up from your phone or computer. Every change is recorded and can be undone.
 - **No account, no tracking.** No analytics, no ads, no servers of its own. Plain Java, no Gradle, one small library (ZXing).
 
+## What's new in 1.8.1
+
+- **Wallpaper themes on demand.** The abstract, nature, space and city screensaver themes are downloaded when you switch a theme on in Settings, and deleted again when you switch it off, so they only take up space while you use them.
+- **Phone setup fixed.** Setting up from a phone now installs SmartTube and Tailscale properly, instead of stopping with "Can't open file".
+- **Long app names scroll** across their tile when it's focused.
+- **Setup wizard layout** no longer cuts off the buttons.
+
 ## Screenshots
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/screenshots/home.png" width="100%" alt="Home screen"><br><sub><b>Home screen.</b> Favourites, Recently used and All apps.</sub></td>
-    <td width="50%"><img src="docs/screenshots/settings.png" width="100%" alt="Settings side sheet"><br><sub><b>Settings panel.</b> Hold Home to open it from anywhere.</sub></td>
+    <td width="50%"><img src="docs/screenshots/home.png" width="100%" alt="Home screen"><br><sub><b>Home screen.</b> Favourites and All apps, with the Tailscale chip and Settings.</sub></td>
+    <td width="50%"><img src="docs/screenshots/settings.png" width="100%" alt="Settings side sheet"><br><sub><b>Settings panel.</b> Hold Home to open it from anywhere: sleep timer, bedtime and more.</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/screensaver-clock.png" width="100%" alt="Clock screensaver"><br><sub><b>Clock screensaver</b> with widget chips.</sub></td>
-    <td><img src="docs/screenshots/screensaver-slideshow.png" width="100%" alt="Slideshow screensaver"><br><sub><b>Slideshow</b> of your own pictures and live wallpapers.</sub></td>
+    <td><img src="docs/screenshots/screensaver-clock.png" width="100%" alt="Clock screensaver"><br><sub><b>Clock screensaver</b> with weather, deadline, countdown and Tailscale chips.</sub></td>
+    <td><img src="docs/screenshots/screensaver-slideshow.png" width="100%" alt="Slideshow screensaver"><br><sub><b>Slideshow.</b> A glass card shows the time, the picture's name and your widgets.</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/sleep.png" width="100%" alt="Bedtime sleep scene"><br><sub><b>Bedtime.</b> A dark sky, stars, a drifting moon and a dim clock.</sub></td>
-    <td><img src="docs/screenshots/setup-connect.png" width="100%" alt="Setup connect screen"><br><sub><b>Setup.</b> Scan the QR code with a phone, or run one command on a computer.</sub></td>
+    <td><img src="docs/screenshots/sleep.png" width="100%" alt="Bedtime sleep scene"><br><sub><b>Bedtime.</b> A dark sky, stars, a moon and a dim clock.</sub></td>
+    <td><img src="docs/screenshots/setup-connect.png" width="100%" alt="Setup connect screen"><br><sub><b>Setup.</b> Scan the QR code with a phone, or use the TV's address and pairing code on a computer.</sub></td>
   </tr>
 </table>
 
@@ -60,16 +67,15 @@
 <br>
 <table>
   <tr>
-    <td width="50%"><img src="docs/screenshots/tiles-menu.png" width="100%" alt="Tile menu"><br><sub><b>Tile menu.</b> Press ≡ on any tile.</sub></td>
-    <td width="50%"><img src="docs/screenshots/filter.png" width="100%" alt="Blue light filter on"><br><sub><b>Blue light filter</b> turned on.</sub></td>
+    <td width="50%"><img src="docs/screenshots/tiles-menu.png" width="100%" alt="Tile menu"><br><sub><b>Tile menu.</b> Press ≡ on any tile to favourite, hide or change its picture.</sub></td>
+    <td width="50%"><img src="docs/screenshots/filter.png" width="100%" alt="Blue light filter on"><br><sub><b>Blue light filter</b> turned on in Settings.</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/screensaver-shapes.png" width="100%" alt="Shapes screensaver"><br><sub><b>Shapes screensaver.</b> Material shapes that float, turn and morph.</sub></td>
-    <td><img src="docs/screenshots/deadlines-qr.png" width="100%" alt="Deadlines QR screen"><br><sub><b>Deadlines.</b> Scan to edit them from your phone.</sub></td>
+    <td><img src="docs/screenshots/screensaver-shapes.png" width="100%" alt="Shapes screensaver"><br><sub><b>Shapes screensaver.</b> Material shapes float and morph behind a glass card with the time and widgets.</sub></td>
+    <td><img src="docs/screenshots/deadlines-qr.png" width="100%" alt="Deadlines QR screen"><br><sub><b>Deadlines and countdown.</b> Scan to edit them from your phone.</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/setup-welcome.png" width="100%" alt="Setup welcome screen"><br><sub><b>Setup wizard</b> on first launch.</sub></td>
-    <td><img src="docs/screenshots/update.png" width="100%" alt="Update available dialog"><br><sub><b>Updates</b> straight from GitHub Releases.</sub></td>
+    <td colspan="2" align="center"><img src="docs/screenshots/setup-welcome.png" width="50%" alt="Setup welcome screen"><br><sub><b>Setup wizard</b> on first launch. Every step is optional.</sub></td>
   </tr>
 </table>
 </details>
@@ -196,7 +202,7 @@ Undo uses the change log to put back exactly what was there. On a TV set up befo
 
 - **Header:** a greeting, a large clock with the date, a **Tailscale chip** showing whether Tailscale is up and the stick's tailnet IP, and a **Settings** button.
 - **Rows:** Favourites (with an "Add favourite" card), **Recently used**, and an **All apps** grid five tiles wide.
-- **Tiles:** every tile is a tonal gradient taken from the app's own colours, with its sharpest icon and its name inside the card. When focused it springs up, its corners round out, and a purple ring appears.
+- **Tiles:** every tile is a tonal gradient taken from the app's own colours, with its sharpest icon and its name inside the card. When focused it springs up, its corners round out, a purple ring appears, and a long name scrolls so you can read all of it.
 - **≡ (menu) or hold Select on a tile:** add or remove a favourite, move it left or right, hide it from All apps, **change the tile picture**, or open app info.
 - **Home button:** pressing Home opens MaterialTV. **Holding Home** opens MaterialTV's settings instead of Amazon's quick menu.
 
@@ -216,7 +222,7 @@ Open it with the Settings button, or hold Home.
   - Style: Rotate all, Clock, Shapes or Slideshow.
   - How long each picture shows.
   - Stills only, live wallpapers only, or both.
-  - Theme switches for abstract, nature, space and city.
+  - Theme switches for abstract, nature, space and city. Switching one on downloads its pictures; switching it off deletes them.
   - A switch for the clock and widgets.
   - A preview, and a switch to use MaterialTV as the Fire TV screensaver.
 - **Widgets:** weather from Open-Meteo (no key or account), deadlines and a big countdown, now playing, Tailscale.
@@ -234,6 +240,7 @@ Open it with the Settings button, or hold Home.
 - **Clock:** large expressive digits and a greeting over drifting Material shapes, with widget chips underneath.
 - **Shapes:** circles, squircles, flowers, scalloped "cookies", pills and soft stars float, turn and gently morph, each with a soft glow.
 - **Slideshow:** pictures pan and zoom slowly. Live wallpapers (MP4) play silently, and short clips loop with a soft dip so the restart doesn't jump. Every change fades through black, and a glass card shows the time, date, the picture's name and your widgets.
+- **Wallpaper themes:** abstract, nature, space and city picture sets, hosted on this repository's [`wallpapers-v1`](https://github.com/Brick-Bread/MaterialTV/releases/tag/wallpapers-v1) release. A theme is downloaded when you switch it on in Settings and deleted when you switch it off. The pictures come from Wikimedia Commons; credits and licences are listed in that release's CREDITS file.
 - **Your own media:** put files in `/sdcard/Android/data/app.m3home/files/screensaver/` on the stick. Sub-folders `abstract`, `nature`, `space` and `city` each get their own on/off switch.
 
 <p align="center"><img src="docs/screenshots/screensaver-shapes.png" width="70%" alt="Shapes screensaver"></p>
@@ -259,11 +266,7 @@ The page only runs while that screen is open, and every request needs the secret
 
 ### Updates
 
-<img src="docs/screenshots/update.png" width="49%" align="right" alt="Update available dialog">
-
 MaterialTV checks this repository's latest **Release** once a day. When there's a newer version, an "Update available" card appears on the home screen. Install downloads `m3home.apk`, checks it against `m3home.apk.sha256`, and opens Android's install prompt, where you confirm. Android only accepts an update signed with the same key as the installed app.
-
-<br clear="right">
 
 ## Privacy
 
@@ -273,6 +276,7 @@ MaterialTV is a launcher, not a service. It has no servers of its own, no accoun
 |---|---|---|
 | Weather | Open-Meteo | Only the chosen town's coordinates are sent. Leave weather unset and nothing is sent. |
 | Updates | GitHub (this repository's Releases) | A daily check for a newer version. |
+| Wallpaper themes | GitHub (this repository's `wallpapers-v1` release) | Only when you switch a screensaver theme on. |
 | Optional downloads | GitHub (SmartTube) and `pkgs.tailscale.com` (Tailscale) | Only if you choose those setup steps. Every APK is checked against a SHA-256 checksum. |
 
 Everything else stays on your home network:
@@ -284,7 +288,7 @@ Everything else stays on your home network:
 <details>
 <summary><b>Android permissions</b></summary>
 
-- `INTERNET`: weather, the companion page, GitHub updates, and the optional SmartTube and Tailscale downloads.
+- `INTERNET`: weather, the companion page, GitHub updates, wallpaper themes, and the optional SmartTube and Tailscale downloads.
 - `ACCESS_NETWORK_STATE`: the Tailscale chip, and finding the TV's address for the QR code.
 - `WRITE_SECURE_SETTINGS` (granted during setup): only to set itself as the screensaver, and to turn its own service back on after an update.
 - `REQUEST_INSTALL_PACKAGES`: to offer GitHub updates. Android still asks you before installing each one.
@@ -406,6 +410,7 @@ build.sh, install.sh
 - **ZXing core:** Apache License 2.0.
 - **Material Icons** (settings, add, visibility off): Apache License 2.0.
 - **Weather** by [Open-Meteo](https://open-meteo.com/).
+- **Screensaver wallpapers:** pictures from [Wikimedia Commons](https://commons.wikimedia.org/), each under its own licence; see the CREDITS file in the [`wallpapers-v1`](https://github.com/Brick-Bread/MaterialTV/releases/tag/wallpapers-v1) release.
 - **SmartTube** and **Tailscale** are third-party apps. They are not part of MaterialTV; setup only downloads them from their official sources if you choose those steps.
 
 ---

@@ -156,7 +156,7 @@ final class Setup {
         if (!had) {
             File apk = download(c, SMARTTUBE_URL, "smarttube.apk", log);
             if (!SMARTTUBE_SHA.equals(sha256(apk))) { apk.delete(); throw new IOException("SmartTube download didn't match its checksum"); }
-            String r = adb.shell("pm install -r '" + apk.getAbsolutePath() + "'");
+            String r = adb.install(apk);
             apk.delete();
             if (!r.contains("Success")) throw new IOException("SmartTube didn't install: " + r);
             arr(led, "installed").put(SMARTTUBE[0]);
@@ -182,7 +182,7 @@ final class Setup {
             File apk = download(c, url, "tailscale.apk", log);
             String want = sha == null ? "" : sha.trim().split("\\s+")[0].toLowerCase(Locale.ROOT);
             if (want.length() != 64 || !want.equals(sha256(apk))) { apk.delete(); throw new IOException("Tailscale download didn't match its checksum"); }
-            String r = adb.shell("pm install -r '" + apk.getAbsolutePath() + "'");
+            String r = adb.install(apk);
             apk.delete();
             if (!r.contains("Success")) throw new IOException("Tailscale didn't install: " + r);
             arr(led, "installed").put(TAILSCALE);

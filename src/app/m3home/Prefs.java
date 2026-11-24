@@ -63,6 +63,37 @@ final class Prefs {
         return c.getApplicationContext().getSharedPreferences("m3home", Context.MODE_PRIVATE);
     }
 
+    // ---- 1.9.0 customisation (shared contract: every package reads these, only Prefs defines them) ----
+    // Home layout
+    static final String HOME_ROWS = "home_rows";       // CSV in display order; a missing id = hidden. ids: favourites,recents,apps
+    static final String TILE_SIZE = "tile_size";       // compact | normal | large
+    // Theme
+    static final String ACCENT = "accent";             // purple|blue|teal|green|yellow|orange|red|pink|background
+    static final String THEME_MODE = "theme_mode";     // dark | light
+    static final String TEXT_SIZE = "text_size";       // small | normal | large
+    // Home background
+    static final String BG_KIND = "bg_kind";           // gradient | solid | wallpaper | custom
+    static final String BG_COLOR = "bg_color";         // int ARGB
+    static final String BG_WALLPAPER = "bg_wallpaper"; // "<theme>/<filename>" in the screensaver folder
+    static final String BG_DIM = "bg_dim";             // 0..80 (%)
+    static final String BG_BLUR = "bg_blur";           // 0..100
+    static final String BG_SEED = "bg_seed";           // int colour picked from the background (for accent=background)
+    static final String LOOK_REV = "look_rev";         // bumped on any look/layout change; screens recreate when it moves
+
+    static String homeRows(Context c) { return of(c).getString(HOME_ROWS, "favourites,recents,apps"); }
+    static String tileSize(Context c) { return of(c).getString(TILE_SIZE, "normal"); }
+    static String accent(Context c) { return of(c).getString(ACCENT, "purple"); }
+    static boolean light(Context c) { return "light".equals(of(c).getString(THEME_MODE, "dark")); }
+    static float textScale(Context c) {
+        String s = of(c).getString(TEXT_SIZE, "normal");
+        return s.equals("small") ? 0.9f : s.equals("large") ? 1.15f : 1f;
+    }
+    static String bgKind(Context c) { return of(c).getString(BG_KIND, "gradient"); }
+    static int bgDim(Context c) { return of(c).getInt(BG_DIM, 40); }
+    static int bgBlur(Context c) { return of(c).getInt(BG_BLUR, 30); }
+    static int lookRev(Context c) { return of(c).getInt(LOOK_REV, 0); }
+    static void bumpLook(Context c) { of(c).edit().putInt(LOOK_REV, lookRev(c) + 1).apply(); }
+
     static int brightness(Context c) { return of(c).getInt(BRIGHTNESS, 100); }
     static boolean warm(Context c) { return of(c).getBoolean(WARM, false); }
     static int warmStrength(Context c) { return of(c).getInt(WARM_STRENGTH, 40); }

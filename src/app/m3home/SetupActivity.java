@@ -852,6 +852,7 @@ public class SetupActivity extends Activity {
         sv.setClipChildren(false);
         col.setOrientation(LinearLayout.VERTICAL);
         col.setClipChildren(false);
+        col.setClipToPadding(false);
         col.setPadding(dp(120), dp(8), dp(120), dp(40));
         sv.addView(col, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         return sv;
@@ -862,6 +863,7 @@ public class SetupActivity extends Activity {
         LinearLayout page = new LinearLayout(this);
         page.setOrientation(LinearLayout.HORIZONTAL);
         page.setClipChildren(false);
+        page.setClipToPadding(false);
         page.setPadding(dp(120), dp(8), dp(120), dp(40));
         for (int i = 0; i < 2; i++) {
             ScrollView sv = new ScrollView(this);
@@ -872,6 +874,7 @@ public class SetupActivity extends Activity {
             LinearLayout col = new LinearLayout(this);
             col.setOrientation(LinearLayout.VERTICAL);
             col.setClipChildren(false);
+            col.setClipToPadding(false);
             sv.addView(col, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, i == 0 ? 5f : 6f);
             if (i == 1) lp.leftMargin = dp(40);
@@ -893,7 +896,8 @@ public class SetupActivity extends Activity {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setClipChildren(false);
-        row.setPadding(dp(4), dp(4), 0, dp(4));
+        row.setClipToPadding(false);
+        row.setPadding(dp(8), dp(6), dp(8), dp(6));
         for (int i = 0; i < buttons.length; i++) {
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(56));
             if (i > 0) lp.leftMargin = dp(16);

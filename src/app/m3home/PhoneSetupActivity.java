@@ -255,6 +255,8 @@ public class PhoneSetupActivity extends Activity {
                 fail("Can't reach the TV. Check the address, that ADB debugging is on (Settings › My Fire TV › Developer options), and that the phone is on the same Wi-Fi.");
             } catch (IOException e) {
                 fail("Stopped: " + e.getMessage());
+            } catch (RuntimeException e) {
+                fail("Stopped: " + e); // never crash; say what went wrong
             } finally {
                 if (adb != null) adb.close();
             }

@@ -47,6 +47,28 @@ final class M3 {
         if (light != null) LIGHT = light;
     }
 
+    // ---- 1.9.0 contract stubs (WP2 fills these in) ----
+    /** A full set of colour roles. */
+    static final class Scheme {
+        int background, surfaceLow, surface, surfaceHigh, surfaceHighest, onSurface, onSurfaceVar, outline,
+                outlineVar, primary, onPrimary, primaryCont, onPrimaryCont, secondaryCont, onSecondaryCont,
+                tertiaryCont, error, tintTop;
+    }
+    /** The context with the user's text size applied; use in attachBaseContext. */
+    static Context scaled(Context base) { return base; }
+    /** The colour with its alpha replaced (0..255). */
+    static int alpha(int color, int a) { return (color & 0x00FFFFFF) | ((a & 0xFF) << 24); }
+    /** The fixed dark scheme (today's colours), for the screensaver. */
+    static Scheme dark() {
+        Scheme s = new Scheme();
+        s.background = 0xFF141218; s.surfaceLow = 0xFF1D1B20; s.surface = 0xFF211F26; s.surfaceHigh = 0xFF2B2930;
+        s.surfaceHighest = 0xFF36343B; s.onSurface = 0xFFE6E0E9; s.onSurfaceVar = 0xFFCAC4D0; s.outline = 0xFF938F99;
+        s.outlineVar = 0xFF49454F; s.primary = 0xFFD0BCFF; s.onPrimary = 0xFF381E72; s.primaryCont = 0xFF4F378B;
+        s.onPrimaryCont = 0xFFEADDFF; s.secondaryCont = 0xFF4A4458; s.onSecondaryCont = 0xFFE8DEF8;
+        s.tertiaryCont = 0xFF633B48; s.error = 0xFFF2B8B5; s.tintTop = 0xFF231C33;
+        return s;
+    }
+
     private static Typeface flex(Context c, int weight) {
         try {
             // ROND gives Google Sans Flex its softer, Material 3 Expressive corners.

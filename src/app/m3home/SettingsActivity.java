@@ -44,6 +44,8 @@ public class SettingsActivity extends Activity {
     private ScrollView sheet;
     private LinearLayout list;
     private View firstRow;
+    private TextView previewSub;
+    private final java.util.Map<String, Runnable> themeRows = new java.util.HashMap<>();
 
     private int dp(float v) { return M3.dp(this, v); }
 
@@ -70,10 +72,22 @@ public class SettingsActivity extends Activity {
         setContentView(root);
 
         build();
+        // Wallpaper downloads report here; each theme row (and the slideshow count) redraws itself.
+        Wallpapers.setListener(theme -> {
+            Runnable redraw = themeRows.get(theme);
+            if (redraw != null) redraw.run();
+            if (previewSub != null) previewSub.setText(mediaSummary());
+        });
 
         sheet.setTranslationX(dp(540));
         sheet.animate().translationX(0).setDuration(280).setInterpolator(new DecelerateInterpolator(2f)).start();
         if (firstRow != null) firstRow.requestFocus();
+    }
+
+    @Override
+    protected void onDestroy() {
+        Wallpapers.setListener(null); // downloads carry on; only the progress display stops
+        super.onDestroy();
     }
 
     @Override
@@ -135,16 +149,11 @@ public class SettingsActivity extends Activity {
         choice("Show", MEDIA_NAMES,
                 () -> indexOf(MEDIA, Prefs.screensaverMedia(this)),
                 i -> Prefs.of(this).edit().putString(Prefs.SS_MEDIA, MEDIA[i]).apply());
-        for (final String theme : Prefs.THEMES) {
-            final String key = Prefs.SS_THEME + theme;
-            toggle(Character.toUpperCase(theme.charAt(0)) + theme.substring(1) + " wallpapers", null,
-                    () -> Prefs.of(this).getBoolean(key, true),
-                    v -> Prefs.of(this).edit().putBoolean(key, v).apply());
-        }
+        for (String theme : Prefs.THEMES) themeToggle(theme);
         toggle("Clock and widgets", "On the screensaver",
                 () -> Prefs.on(this, Prefs.SS_INFO),
                 v -> Prefs.of(this).edit().putBoolean(Prefs.SS_INFO, v).apply());
-        link("Preview screensaver", mediaSummary(),
+        previewSub = link("Preview screensaver", mediaSummary(),
                 () -> startActivity(new Intent(this, ScreensaverActivity.class)));
         toggle("Use as Fire TV screensaver", "Replaces Amazon's screensaver",
                 () -> Secure.isScreensaver(this),
@@ -235,6 +244,68 @@ public class SettingsActivity extends Activity {
                 i -> Prefs.of(this).edit().putInt(key, i * 30).apply());
     }
 
+    /**
+     * A wallpaper theme. On means "show it", and its pictures are downloaded from the wallpapers-v1
+     * release when it's switched on and deleted when it's switched off. A theme with nothing
+     * downloaded shows as off even though its setting defaults to on, so a fresh install offers the
+     * download instead of claiming pictures it doesn't have.
+     */
+    private void themeToggle(final String theme) {
+        final String key = Prefs.SS_THEME + theme;
+        LinearLayout r = row(LinearLayout.HORIZONTAL);
+        LinearLayout text = labels(Character.toUpperCase(theme.charAt(0)) + theme.substring(1) + " wallpapers", "");
+        final TextView sub = (TextView) text.getChildAt(1);
+        r.addView(text, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        final SwitchView sw = new SwitchView(this);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(52), dp(32));
+        lp.leftMargin = dp(16);
+        r.addView(sw, lp);
+
+        final BoolGet isOn = () -> Prefs.of(this).getBoolean(key, true)
+                && (Wallpapers.busy(theme) || Wallpapers.has(this, theme));
+        final Runnable show = () -> {
+            sw.setChecked(isOn.get());
+            sub.setText(themeSummary(theme, isOn.get()));
+        };
+        show.run();
+        themeRows.put(theme, show);
+        r.setOnClickListener(v -> {
+            boolean on = !isOn.get();
+            Prefs.of(this).edit().putBoolean(key, on).apply(); // the screensaver reads this, as before
+            if (on) Wallpapers.download(this, theme);
+            else Wallpapers.remove(this, theme);
+            show.run();
+            if (previewSub != null) previewSub.setText(mediaSummary());
+        });
+    }
+
+    /** "Downloading 3 of 11…", "8 pictures · 4 live · 27 MB", "Not downloaded · 30 MB · select to download". */
+    private String themeSummary(String theme, boolean on) {
+        String status = Wallpapers.status(theme);
+        if (status != null) return status;
+        List<File> files = Wallpapers.files(this, theme);
+        List<Wallpapers.Item> known = Wallpapers.known(this, theme);
+        if (files.isEmpty()) {
+            long size = 0;
+            if (known != null) for (Wallpapers.Item i : known) size += i.size;
+            return "Not downloaded" + (size > 0 ? " · " + Wallpapers.mb(size) : "") + " · select to download";
+        }
+        if (!on) {
+            int have = known == null ? 0 : Wallpapers.present(this, known);
+            return known != null && have < known.size()
+                    ? "Got " + have + " of " + known.size() + " · select to finish downloading"
+                    : "Hidden · select to show";
+        }
+        int videos = 0;
+        long bytes = 0;
+        for (File f : files) {
+            if (ScreensaverView.isVideo(f)) videos++;
+            bytes += f.length();
+        }
+        int images = files.size() - videos;
+        return images + (images == 1 ? " picture · " : " pictures · ") + videos + " live · " + Wallpapers.mb(bytes);
+    }
+
     private void widgetToggle(String title, String subtitle, String key) {
         toggle(title, subtitle, () -> Prefs.on(this, key), v -> Prefs.of(this).edit().putBoolean(key, v).apply());
     }
@@ -302,7 +373,7 @@ public class SettingsActivity extends Activity {
         int videos = 0;
         for (File f : media) if (ScreensaverView.isVideo(f)) videos++;
         int images = media.size() - videos;
-        if (media.isEmpty()) return "Slideshow: no pictures added yet";
+        if (media.isEmpty()) return "Slideshow: no pictures yet. Turn on a wallpaper theme to download some";
         return "Slideshow: " + images + (images == 1 ? " picture, " : " pictures, ")
                 + videos + (videos == 1 ? " live wallpaper" : " live wallpapers");
     }
@@ -376,11 +447,14 @@ public class SettingsActivity extends Activity {
         return l;
     }
 
-    private void link(String title, String subtitle, Runnable action) {
+    /** A row that opens something. Returns its subtitle, if it has one, so it can be updated. */
+    private TextView link(String title, String subtitle, Runnable action) {
         LinearLayout r = row(LinearLayout.HORIZONTAL);
-        r.addView(labels(title, subtitle), new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        LinearLayout text = labels(title, subtitle);
+        r.addView(text, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         r.addView(text("›", 28, M3.ON_SURFACE_VAR, M3.REGULAR));
         r.setOnClickListener(v -> action.run());
+        return subtitle == null ? null : (TextView) text.getChildAt(1);
     }
 
     private void toggle(String title, String subtitle, BoolGet get, BoolSet set) {

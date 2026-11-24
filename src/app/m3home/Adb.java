@@ -147,7 +147,10 @@ final class Adb implements Closeable {
         while (true) {
             Msg m = read();
             log("got " + Integer.toHexString(m.cmd) + " arg0=" + m.arg0 + " len=" + m.data.length);
-            if (m.cmd == CNXN) return;
+            if (m.cmd == CNXN) {
+                if (m.arg1 > 0) remoteMax = m.arg1;
+                return;
+            }
             if (m.cmd != AUTH || m.arg0 != AUTH_TOKEN) throw new IOException("unexpected reply from adbd");
             if (!signed) {
                 byte[] sig = sign(keys.getPrivate(), m.data);
@@ -166,6 +169,59 @@ final class Adb implements Closeable {
             }
         }
     }
+
+    /**
+     * Installs an APK that's on THIS device onto the device at the other end, like `adb install`:
+     * the file is streamed into `cmd package install -S <size>` on the TV. (A plain `pm install <path>`
+     * only works when the file is already on the TV, which it isn't when a phone runs the setup.)
+     */
+    synchronized String install(java.io.File apk) throws IOException {
+        int local = nextId++;
+        socket.setSoTimeout(120_000);
+        send(OPEN, local, 0, ("exec:cmd package install -r -S " + apk.length() + "\0").getBytes(StandardCharsets.UTF_8));
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        int remote = awaitOkay(local, output, 0);
+        int chunk = Math.max(1024, Math.min(remoteMax, 64 * 1024));
+        try (InputStream in = new FileInputStream(apk)) {
+            byte[] buf = new byte[chunk];
+            int n;
+            while ((n = in.read(buf)) > 0) {
+                send(WRTE, local, remote, java.util.Arrays.copyOf(buf, n));
+                awaitOkay(local, output, remote); // adbd acknowledges each chunk before the next
+            }
+        }
+        // Read what the installer says ("Success" or a failure reason) until it closes.
+        while (true) {
+            Msg m = read();
+            if (m.arg1 != local) continue;
+            if (m.cmd == WRTE) {
+                output.write(m.data);
+                send(OKAY, local, m.arg0, new byte[0]);
+            } else if (m.cmd == CLSE) {
+                send(CLSE, local, m.arg0 != 0 ? m.arg0 : remote, new byte[0]);
+                break;
+            }
+        }
+        return output.toString("UTF-8").trim();
+    }
+
+    /** Waits for adbd's OKAY on our stream, keeping any output that arrives meanwhile. */
+    private int awaitOkay(int local, ByteArrayOutputStream output, int remote) throws IOException {
+        while (true) {
+            Msg m = read();
+            if (m.arg1 != local) continue;
+            if (m.cmd == OKAY) return m.arg0;
+            if (m.cmd == WRTE) {
+                output.write(m.data);
+                send(OKAY, local, m.arg0, new byte[0]);
+            } else if (m.cmd == CLSE) {
+                throw new IOException("the TV closed the install: " + output.toString("UTF-8").trim());
+            }
+        }
+    }
+
+    /** The largest message the other side accepts (from its CNXN reply). */
+    private int remoteMax = 4096;
 
     /** Runs a shell command and returns everything it printed. */
     synchronized String shell(String command) throws IOException {
