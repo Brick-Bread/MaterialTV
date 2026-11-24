@@ -38,6 +38,15 @@
 - **Reversible setup.** Optional debloat and privacy, SmartTube and Tailscale, set up from your phone or computer. Every change is recorded and can be undone.
 - **No account, no tracking.** No analytics, no ads, no servers of its own. Plain Java, no Gradle, one small library (ZXing).
 
+## What's new in 1.9.0
+
+- **Make Home yours.** Choose which rows show (Favourites, Recently used, All apps) and in what order, and pick compact, normal or large tiles.
+- **Easy reorder.** Choose **Move** on a favourite, then slide it left or right with the remote and press Select to drop it.
+- **Accent colours, light mode and text size.** Eight accent colours, or one taken from your background, in dark or light, with small, normal or large text.
+- **Home backgrounds.** The gradient, a solid colour, one of the downloaded wallpapers, or **your own picture**, with dim and blur.
+- **Customise from your phone.** Scan a QR code and change the Home rows, favourites order, colours, background (upload a photo straight from your phone), widgets and screensaver on a phone-friendly page. Changes land on the TV straight away.
+- **Simpler settings.** Quick toggles at the top (sleep timer, blue light, bedtime, screensaver), with everything else grouped into short pages.
+
 ## What's new in 1.8.1
 
 - **Wallpaper themes on demand.** The abstract, nature, space and city screensaver themes are downloaded when you switch a theme on in Settings, and deleted again when you switch it off, so they only take up space while you use them.
@@ -252,15 +261,17 @@ Open it with the Settings button, or hold Home.
 
 <p align="center"><img src="docs/screenshots/sleep.png" width="70%" alt="Bedtime sleep scene"></p>
 
-### Deadlines companion page
+### Customise from your phone
 
-<img src="docs/screenshots/deadlines-qr.png" width="49%" align="right" alt="Deadlines QR screen">
+<img src="docs/screenshots/deadlines-qr.png" width="49%" align="right" alt="Companion QR screen">
 
-1. In settings, open **Deadlines and countdown**.
+1. In settings, open **Customise from your phone** (or **Deadlines and countdown**).
 2. Scan the QR code with your phone. It needs to be on the same Wi-Fi as the TV, or on Tailscale.
-3. A small page served **by the stick itself** opens. Add or remove deadlines, set the big countdown and set the weather town. There's no built-in town, so weather appears once you set one.
+3. A small page served **by the stick itself** opens, with two tabs:
+   - **Customise:** Home rows and their order, tile size, favourites (reorder, add, remove), hidden apps, accent colour, light or dark, text size, the Home background (including uploading your own photo, which your phone shrinks before sending), widgets and screensaver options. Each change is applied straight away.
+   - **Deadlines:** add or remove deadlines, set the big countdown and set the weather town. There's no built-in town, so weather appears once you set one. Press **Save to TV**.
 
-The page only runs while that screen is open, and every request needs the secret key in the QR link.
+The page only runs while that QR screen is open, only answers devices on your home network or tailnet, and every request needs the secret key in the QR link.
 
 <br clear="right">
 
@@ -281,7 +292,7 @@ MaterialTV is a launcher, not a service. It has no servers of its own, no accoun
 
 Everything else stays on your home network:
 
-- **Companion page:** served by the TV itself, only while the Deadlines screen is open, and only to requests carrying the secret key from the QR code.
+- **Companion page:** served by the TV itself, only while its QR screen is open, only to devices on your home network or tailnet, and only to requests carrying the secret key from the QR code. A picture you upload as the background is stored on the TV.
 - **Setup:** your phone or computer talks to the TV over ADB on your local network, only after you allow its key on the TV. The computer scripts download adb and the setup lists from Google and GitHub; see [`scripts/README.md`](scripts/README.md#privacy).
 - **Setup page:** [setup.html](https://brick-bread.github.io/MaterialTV/setup.html) has no analytics and makes no network requests; the TV's address and pairing code are only written into the page's own instructions.
 
