@@ -190,6 +190,10 @@
   .feature .icon svg { width: 26px; height: 26px; }
   .feature:nth-child(3n+2) .icon { border-radius: 50%; }
   .feature:nth-child(3n) .icon { border-radius: 14px 26px; }
+  .card .check + h3 { margin-top: 22px; }
+  details.older { margin-top: 20px; }
+  details.older > summary { cursor: pointer; font-weight: 600; color: var(--primary, #D0BCFF); padding: 6px 0; }
+  details.older h4 { margin: 18px 0 6px; font-size: 1.05rem; }
   .feature ul { margin: 10px 0 0; padding-left: 20px; color: var(--on-surface-variant); }
 
   /* Gallery */
@@ -264,6 +268,9 @@
   <symbol id="i-wand" viewBox="0 0 24 24"><path fill="currentColor" d="M19 9l-1.25-2.75L15 5l2.75-1.25L19 1l1.25 2.75L23 5l-2.75 1.25L19 9zm0 14l-1.25-2.75L15 19l2.75-1.25L19 15l1.25 2.75L23 19l-2.75 1.25L19 23zM9 20l-2.5-5.5L1 12l5.5-2.5L9 4l2.5 5.5L17 12l-5.5 2.5L9 20z"/></symbol>
   <symbol id="i-undo" viewBox="0 0 24 24"><path fill="currentColor" d="M7 19v-2h7.1q1.575 0 2.738-1T18 13.5q0-1.5-1.162-2.5T14.1 10H7.8l2.6 2.6L9 14 4 9l5-5 1.4 1.4L7.8 8h6.3q2.425 0 4.163 1.575T20 13.5q0 2.35-1.737 3.925T14.1 19H7z"/></symbol>
   <symbol id="i-shield" viewBox="0 0 24 24"><path fill="currentColor" d="M12 22q-3.475-.875-5.738-3.988T4 11.1V5l8-3 8 3v6.1q0 3.8-2.262 6.913T12 22zm-1.05-6.45l5.65-5.65-1.425-1.425-4.225 4.225-2.1-2.1L7.425 12l3.525 3.55z"/></symbol>
+  <symbol id="i-store" viewBox="0 0 24 24"><path fill="currentColor" d="M5 22q-.825 0-1.413-.588T3 20V8q0-.825.588-1.413T5 6h2q0-2.075 1.463-3.538T12 1q2.075 0 3.538 1.462T17 6h2q.825 0 1.413.588T21 8v12q0 .825-.588 1.413T19 22H5zm0-2h14V8H5v12zm7-6q2.075 0 3.538-1.463T17 9h-2q0 1.25-.875 2.125T12 12q-1.25 0-2.125-.875T9 9H7q0 2.075 1.463 3.538T12 14zM9 6h6q0-1.25-.875-2.125T12 3q-1.25 0-2.125.875T9 6z"/></symbol>
+  <symbol id="i-puzzle" viewBox="0 0 24 24"><path fill="currentColor" d="M8.8 21H5q-.825 0-1.413-.588T3 19v-3.8q1.2 0 2.1-.762T6 12.5q0-1.175-.9-1.937T3 9.8V6q0-.825.588-1.413T5 4h4q0-1.050.725-1.775T11.5 1.5q1.05 0 1.775.725T14 4h4q.825 0 1.413.588T20 6v4q1.05 0 1.775.725T22.5 12.5q0 1.05-.725 1.775T20 15v4q0 .825-.588 1.413T18 21h-3.8q0-1.25-.788-2.125T11.5 18q-1.125 0-1.912.875T8.8 21z"/></symbol>
+  <symbol id="i-palette" viewBox="0 0 24 24"><path fill="currentColor" d="M12 22q-2.05 0-3.875-.788t-3.187-2.15q-1.363-1.362-2.15-3.187T2 12q0-2.075.813-3.9t2.2-3.175Q6.4 3.575 8.25 2.788T12.2 2q2 0 3.775.688t3.113 1.9q1.337 1.212 2.125 2.875T22 11.05q0 2.875-1.75 4.413T16 17h-1.85q-.225 0-.312.125t-.088.275q0 .3.375.863t.375 1.287q0 1.25-.687 1.85T12 22zm-5.5-9q.65 0 1.075-.425T8 11.5q0-.65-.425-1.075T6.5 10q-.65 0-1.075.425T5 11.5q0 .65.425 1.075T6.5 13zm3-4q.65 0 1.075-.425T11 7.5q0-.65-.425-1.075T9.5 6q-.65 0-1.075.425T8 7.5q0 .65.425 1.075T9.5 9zm5 0q.65 0 1.075-.425T16 7.5q0-.65-.425-1.075T14.5 6q-.65 0-1.075.425T13 7.5q0 .65.425 1.075T14.5 9zm3 4q.65 0 1.075-.425T19 11.5q0-.65-.425-1.075T17.5 10q-.65 0-1.075.425T16 11.5q0 .65.425 1.075T17.5 13z"/></symbol>
   <symbol id="i-copy" viewBox="0 0 24 24"><path fill="currentColor" d="M9 18q-.825 0-1.413-.588T7 16V4q0-.825.588-1.413T9 2h9q.825 0 1.413.588T20 4v12q0 .825-.588 1.413T18 18H9zm0-2h9V4H9v12zm-4 6q-.825 0-1.413-.588T3 20V6h2v14h11v2H5z"/></symbol>
 </svg>
 
@@ -282,6 +289,8 @@
       <a href="#setup">Setup &amp; undo</a>
       <a href="#privacy">Privacy</a>
       <a href="#faq">FAQ</a>
+      <a href="apps.html">Make apps</a>
+      <a href="plugins.html">Plugins</a>
     </nav>
     <a class="btn btn-tonal btn-sm" href="https://github.com/Brick-Bread/MaterialTV">
       <svg aria-hidden="true"><use href="#i-github"/></svg><span>GitHub</span>
@@ -296,7 +305,7 @@
       <div>
         <span class="eyebrow"><span class="dot" aria-hidden="true"></span>Free &amp; open source · GPL-3.0</span>
         <h1>Material<span class="accent">TV</span></h1>
-        <p class="lede">A calm, ad-free Material&nbsp;3 home screen for Amazon Fire&nbsp;TV, with a beautiful screensaver, a sleep timer, and a setup wizard that can declutter your Fire&nbsp;TV and undo it all again.</p>
+        <p class="lede">A calm, ad-free Material&nbsp;3 home screen for Amazon Fire&nbsp;TV, with its own app store, plugins, backgrounds you choose, a beautiful screensaver, a sleep timer, and a setup wizard that can declutter your Fire&nbsp;TV and undo it all again.</p>
         <div class="cta">
           <a class="btn btn-filled" href="https://github.com/Brick-Bread/MaterialTV/releases/latest/download/m3home.apk">
             <svg aria-hidden="true"><use href="#i-download"/></svg>Download APK
@@ -401,22 +410,37 @@
   <section id="features" aria-labelledby="features-h">
     <div class="wrap">
       <h2 id="features-h">What you get</h2>
-      <p class="section-intro">Everything is drawn in the Material&nbsp;3 Expressive style: a dark theme, baseline purple accents and Google Sans Flex.</p>
+      <p class="section-intro">Everything is drawn in the Material&nbsp;3 Expressive style with Google Sans Flex, in dark or light, with the accent colour and background you pick.</p>
       <div class="grid three">
         <article class="card feature">
           <div class="icon" aria-hidden="true"><svg><use href="#i-grid"/></svg></div>
           <h3>Uniform app tiles</h3>
-          <p>Every app gets the same tonal card, coloured from its own icon. Focused tiles spring up with rounder corners and a purple ring, and long names scroll so you can read them. You can swap in your own tile artwork.</p>
+          <p>Every app gets the same tonal card, coloured from its own icon. Icons are trimmed into neat circles, focused tiles spring up with rounder corners and an accent ring, and long names scroll so you can read them. Pick compact, normal or large tiles, or swap in your own tile artwork.</p>
         </article>
         <article class="card feature">
           <div class="icon" aria-hidden="true"><svg><use href="#i-home"/></svg></div>
           <h3>Favourites, recents, all apps</h3>
-          <p>Pin and reorder favourites, see recently used apps, and browse everything in a five-wide grid. Hide apps you never use.</p>
+          <p>Pin and reorder favourites, see recently used apps, and browse everything in a grid. Choose which rows show and in what order, hide apps you never use, and press &equiv; on any app to uninstall it.</p>
+        </article>
+        <article class="card feature">
+          <div class="icon" aria-hidden="true"><svg><use href="#i-store"/></svg></div>
+          <h3>Get apps: a built-in app store</h3>
+          <p>A Get apps row on Home installs open-source TV apps (SmartTube, Jellyfin, Kodi, VLC, Moonlight, LocalSend, Tailscale, Spotube, SimpMusic, Metrolist, RadioDroid and more) straight from their makers' releases. Each app has a full-screen page with screenshots, release notes, Install, Update, Open and Uninstall. Spotify, Netflix, YouTube and other big apps open their Fire TV store page.</p>
+        </article>
+        <article class="card feature">
+          <div class="icon" aria-hidden="true"><svg><use href="#i-palette"/></svg></div>
+          <h3>Make it yours</h3>
+          <p>Eight accent colours or one taken from your background, dark or light mode, and three text sizes. Set the Home background to a gradient, a solid colour, a wallpaper, your own photo or a slideshow, with dim and blur.</p>
+        </article>
+        <article class="card feature">
+          <div class="icon" aria-hidden="true"><svg><use href="#i-puzzle"/></svg></div>
+          <h3>Plugins &amp; web apps</h3>
+          <p>Add widgets, rows of tiles, themes and smart-home shortcuts with plugins, or install full-screen web apps built in HTML that work with the remote. Anyone can make them: see the <a href="plugins.html">plugin guide</a> and the <a href="apps.html">app guide</a>.</p>
         </article>
         <article class="card feature">
           <div class="icon" aria-hidden="true"><svg><use href="#i-wand"/></svg></div>
           <h3>Hold Home for settings</h3>
-          <p>Holding the Home button opens MaterialTV's own side-sheet settings instead of Amazon's quick menu, with shortcuts to the Fire TV settings you actually use.</p>
+          <p>Holding the Home button opens MaterialTV's own settings instead of Amazon's quick menu: quick toggles at the top, everything else in short pages, plus shortcuts to the Fire TV settings you actually use.</p>
         </article>
         <article class="card feature">
           <div class="icon" aria-hidden="true"><svg><use href="#i-moon"/></svg></div>
@@ -436,9 +460,9 @@
         <article class="card feature">
           <div class="icon" aria-hidden="true"><svg><use href="#i-widgets"/></svg></div>
           <h3>Widgets</h3>
-          <p>Show on the home screen and screensaver:</p>
+          <p>Show on the home screen and screensaver, or add more with plugins:</p>
           <ul>
-            <li>Weather from Open-Meteo (no key, no account)</li>
+            <li>Weather from Open-Meteo, right on Home (no key, no account)</li>
             <li>Deadlines and a big countdown</li>
             <li>Now playing</li>
             <li>Tailscale status</li>
@@ -447,16 +471,34 @@
         <article class="card feature">
           <div class="icon" aria-hidden="true"><svg><use href="#i-qr"/></svg></div>
           <h3>Edit from your phone</h3>
-          <p>Scan a QR code on the TV to open a small companion page served by the TV itself. Add deadlines, set the countdown and pick your weather town, without typing on a remote.</p>
+          <p>Scan a QR code on the TV to open a small companion page served by the TV itself. Change rows, favourites, colours and background (upload a photo straight from your phone), add apps and plugins, set deadlines and pick your weather town, without typing on a remote.</p>
         </article>
         <article class="card feature">
           <div class="icon" aria-hidden="true"><svg><use href="#i-update"/></svg></div>
           <h3>Automatic updates</h3>
-          <p>New versions come straight from GitHub Releases, checked against a SHA-256 checksum and installed only after you confirm.</p>
+          <p>New versions of MaterialTV and your store apps come straight from GitHub Releases, checked against a SHA-256 checksum and installed only after you confirm. Update badges show when something new is out, and if a download fails it tells you why in plain English.</p>
         </article>
       </div>
       <div class="card" style="margin-top:16px">
-        <h3>What's new in 1.10.0</h3>
+        <h3>What's new in 1.12.0</h3>
+        <ul class="check">
+          <li><strong>Full-screen app pages:</strong> select any app, web app or plugin in Get apps to see a big page with its icon, description, release notes, screenshots (open them full screen), size and version, with Install, Update, Open and Uninstall.</li>
+          <li><strong>Plugin pages</strong> show what a plugin adds, with Turn on/off and Apply theme. <strong>Web app pages</strong> show what the app is allowed to do.</li>
+          <li><strong>Web apps fixed:</strong> the remote always starts on something you can select, so the arrows never get stuck (Hello TV works properly).</li>
+        </ul>
+        <h3>What's new in 1.11</h3>
+        <ul class="check">
+          <li><strong>Plugins:</strong> widgets, rows, themes and shortcut tiles, as simple JSON or as Android apps. <a href="plugins.html">Make your own</a>.</li>
+          <li><strong>Weather on Home</strong> next to the clock.</li>
+          <li><strong>Tidy round icons</strong> for every app, trimmed and centred.</li>
+          <li><strong>Uninstall</strong> from any tile or from Get apps. Installed store apps stay on the row so you can open or remove them.</li>
+          <li><strong>Wallpaper slideshow</strong> for the Home background.</li>
+          <li><strong>No more "can't reach GitHub":</strong> the app list is prepared on this site, so TVs no longer hit GitHub's rate limit, and any failure is explained in plain English.</li>
+          <li>The remote stops at the end of a row instead of jumping to Settings.</li>
+        </ul>
+        <details class="older">
+          <summary>Earlier versions</summary>
+        <h4>What's new in 1.10.0</h4>
         <ul class="check">
           <li><strong>Get apps:</strong> a little app store row on Home. Open-source TV apps (SmartTube, Jellyfin, Kodi, VLC, Moonlight, LocalSend, Tailscale, Spotube, SimpMusic, Metrolist, RadioDroid) install straight from their makers' official releases, checked before installing.</li>
           <li><strong>Popular apps too:</strong> Spotify, YouTube, Netflix, Disney+, BBC iPlayer and more open their Fire TV app store page.</li>
@@ -465,7 +507,7 @@
           <li><strong>Plugins:</strong> extra widgets, rows of tiles, shareable themes and smart-home shortcut tiles, added by link from your phone. <a href="plugins.html">Make your own</a>.</li>
           <li><strong>Add your own apps</strong> from your phone: a GitHub repo or an https APK link, under Your apps.</li>
         </ul>
-        <h3>What's new in 1.9.0</h3>
+        <h4>What's new in 1.9.0</h4>
         <ul class="check">
           <li><strong>Make Home yours:</strong> choose which rows show and in what order, and pick compact, normal or large tiles.</li>
           <li><strong>Easy reorder:</strong> choose Move on a favourite, slide it with left and right, press Select to drop it.</li>
@@ -475,13 +517,14 @@
           <li><strong>Simpler settings:</strong> quick toggles at the top, everything else in short pages.</li>
           <li><strong>Phone app:</strong> updates itself from GitHub, and waits for you to pick options after scanning the TV's code.</li>
         </ul>
-        <h3>What's new in 1.8.1</h3>
+        <h4>What's new in 1.8.1</h4>
         <ul class="check">
           <li><strong>Wallpaper themes on demand:</strong> the abstract, nature, space and city screensaver pictures download when you switch a theme on in Settings, and are deleted when you switch it off, so they only use space while you want them.</li>
           <li><strong>Phone setup fixed:</strong> setting up from a phone now installs SmartTube and Tailscale properly, instead of stopping with "Can't open file".</li>
           <li><strong>Long app names scroll</strong> across their tile when it's focused.</li>
           <li><strong>Setup wizard layout</strong> no longer cuts off the buttons.</li>
         </ul>
+        </details>
       </div>
     </div>
   </section>
@@ -551,7 +594,7 @@
         </div>
         <div class="card">
           <h3>Network use is minimal</h3>
-          <p><strong>Weather:</strong> only the coordinates of the town you chose are sent to Open-Meteo. <strong>Updates:</strong> a daily check of this project's GitHub Releases. <strong>Wallpaper themes:</strong> downloaded from this project's GitHub release only when you switch a theme on. <strong>Companion page:</strong> served on your home network by the TV itself. <strong>Setup:</strong> SmartTube and Tailscale are downloaded from their official releases only if you pick them. Leave weather unset and there's nothing else to send.</p>
+          <p><strong>Weather:</strong> only the coordinates of the town you chose are sent to Open-Meteo. <strong>Updates:</strong> a daily check of this project's GitHub Releases. <strong>Wallpaper themes:</strong> downloaded from this project's GitHub release only when you switch a theme on. <strong>Companion page:</strong> served on your home network by the TV itself. <strong>Setup:</strong> SmartTube and Tailscale are downloaded from their official releases only if you pick them. <strong>Get apps:</strong> the app list comes from this website, and apps download from their makers' official releases only when you install them. <strong>Plugins and web apps</strong> load only from links you add. Leave weather unset and there's nothing else to send.</p>
         </div>
         <div class="card">
           <h3>Companion page stays local</h3>
@@ -601,6 +644,18 @@
           <summary>Is it safe to install an APK from GitHub?</summary>
           <div class="answer">
             <p>The full source code is public under GPL-3.0, and each release publishes a SHA-256 checksum alongside the APK. Android only accepts updates signed with the same key as the version you installed.</p>
+          </div>
+        </details>
+        <details>
+          <summary>Can I get Spotify, Netflix or YouTube?</summary>
+          <div class="answer">
+            <p>Yes, they're in Get apps. They aren't open source, so they can only come from Amazon's store: selecting one opens its Fire TV app store page. Open-source apps like SmartTube (YouTube without ads), Spotube, SimpMusic and Metrolist (music) install directly from MaterialTV.</p>
+          </div>
+        </details>
+        <details>
+          <summary>Can I add an app that isn't in Get apps?</summary>
+          <div class="answer">
+            <p>Yes. Customise from your phone, open Get apps and paste a GitHub repo or an https link to an APK. It shows up under Your apps and gets update badges like the others. To build your own, see the <a href="apps.html">app guide</a> or the <a href="plugins.html">plugin guide</a>.</p>
           </div>
         </details>
         <details>
