@@ -1,6 +1,6 @@
 {
  "version": 1,
- "generated": "2026-11-25T14:32:09Z",
+ "generated": "2026-11-27T13:57:41Z",
  "apps": [
   {
    "id": "spotube",
@@ -15,12 +15,12 @@
   {
    "id": "simpmusic",
    "repo": "maxrave-dev/SimpMusic",
-   "version": "v2.6.0",
-   "url": "https://github.com/maxrave-dev/SimpMusic/releases/download/v2.6.0/SimpMusic-foss-armeabi-v7a-release.apk",
-   "size": 28730871,
+   "version": "v2.7.0",
+   "url": "https://github.com/maxrave-dev/SimpMusic/releases/download/v2.7.0/SimpMusic-foss-armeabi-v7a-release.apk",
+   "size": 29113948,
    "asset": "SimpMusic-foss-armeabi-v7a-release.apk",
-   "published_at": "2026-11-14T11:30:57Z",
-   "notes": "Full changlogs here: https://www.simpmusic.org/blogs/new-update-simpmusic-v260\nRead user-guide: https://www.simpmusic.org/docs\nNew\n• Library sync: pair your phone with the Desktop app once by QR, and likes, followed artists, saved albums and podcasts, playlists and listening history stay the same on both, over your own Wi-Fi or Tailscale\n• SoundCloud Now Playing style: artwork on a card, the song's waveform as the seek bar, comments shown at their moment, and a comment box with quick reactions\n• 8D audio on Android and Desktop: the song moves around your head, with the direction and the time per turn of your choice\n• Import sign-ins from a browser on Desktop: take your YouTube or Spotify sign-in from a browser on the same computer instead of pasting cookies\n• Word-by-word lyrics from LRCLIB when it has word timing for the song\n• Music app colours: Spotify, SoundCloud, Apple Music and YouTube Music presets in the app colour picker\nImproved\n• AutoMix: a fade ends where the last chorus ends, and the next song comes in at the end of its intro\n• Downloads: Remove download and Cancel download in the song menu, and remove several at once from the Downloaded list\n• Discord login on the Full build: on Discord's own page in your browser, with no account token read by the app (log in again once)\n• Desktop: vertical scrollbars on every scrolling page, the sidebar, the queues and the comments, and artist logos that scale with the page\n• Home on Android fits more on screen, and rounded…"
+   "published_at": "2026-11-27T11:10:53Z",
+   "notes": "Full changlogs here: https://www.simpmusic.org/blogs/new-update-simpmusic-v270\nRead user-guide: https://www.simpmusic.org/docs\nNew\n• Radio builder: Create → Radio lets you pick artists, songs and genres, then tune artist variety, music discovery and filters, and Done starts one radio made from all of them. Signed in, the artists come from your own YouTube Music taste, and a radio you like can be saved with the heart. (#2664)\n• Replay Mix: a card in Your library plays the songs you played most this week, then this month. It updates once a day and keeps going as a radio when it runs out. (#2664)\n• Delete lyrics: while lyrics are on screen, the song menu offers Delete lyrics. They leave this device and the same copy is not shown again for that song. SimpMusic lyrics are also taken off the server if you contributed them, and voted down if you did not. (#2959)\n• Animated lyrics background: two switches under Settings → Interface → Lyrics style give lyrics pages a slowly moving background made from the artwork, which can also pulse with the song's bass. On Android 12 and later, and on Desktop. (#2962)\n• Search in Settings: a search field at the top of Settings shows only the settings that match what you type. (#2960)\n• More AI providers: Settings → AI now lists OpenRouter, Groq, DeepSeek, Mistral AI, xAI, Together AI, Fireworks AI, Cerebras and Anthropic, and you pick the model from a searchable list of the provider's own models. (#2942)\n• Choose the app icon (Android): Settings…"
   },
   {
    "id": "metrolist",
@@ -55,12 +55,12 @@
   {
    "id": "jellyfin",
    "repo": "jellyfin/jellyfin-androidtv",
-   "version": "v0.20.0",
-   "url": "https://github.com/jellyfin/jellyfin-androidtv/releases/download/v0.20.0/jellyfin-androidtv-v0.20.0-release.apk",
-   "size": 29945596,
-   "asset": "jellyfin-androidtv-v0.20.0-release.apk",
-   "published_at": "2026-11-10T12:50:35Z",
-   "notes": "Jellyfin for Android TV 0.20 is here! This release brings redesigned settings, improved video playback and subtitle support, better integration with external players, and plenty of enhancements across the app. Read about the highlights in our blog post or explore the full changelog below.\n\nIf you appreciate my work, you can show your support with a donation through Buy Me a Coffee or GitHub sponsors. Your support helps me continue improving and growing the app. Thank you!\n🌟 Highlights\n• Add option to always burn in subtitles when transcoding #4459, by @GertSallaerts\n• Require Android 6 at minimum \\(API 23\\) #4836, by @nielsvanvelzen\n• Use Jellyfin 10\\.11 based SDK #5037, by @nielsvanvelzen\n• Support Advanced SubStation Alpha direct play #5121, by @nielsvanvelzen\n• Add new settings UI #5198, by @nielsvanvelzen\n• Allow selecting external video player app #5280, by @nielsvanvelzen\n• Add user\\-defined AVC/HEVC codec level override #5520, by @johnpc\n• Add photo player presentation delay to settings as user preference #5722, by @hraabis\n• Add user preferences to force enable or disable common HDR formats #5743, by @clowncracker\n💥 Crash fixes\n• Use android plugin for AboutLibraries generation #5206, by @nielsvanvelzen\n• Fix missing focus in new player UI #5513, by @nielsvanvelzen\n• Fix NullPointerException when display\\.getHdrCapabilities\\(\\) returns null #5718, by @nielsvanvelzen\n• Fix Live TV guide crash when channel loading fails #5801, by @andrew749\n• Use strong reference to…"
+   "version": "v0.20.1",
+   "url": "https://github.com/jellyfin/jellyfin-androidtv/releases/download/v0.20.1/jellyfin-androidtv-v0.20.1-release.apk",
+   "size": 29957341,
+   "asset": "jellyfin-androidtv-v0.20.1-release.apk",
+   "published_at": "2026-11-26T20:28:01Z",
+   "notes": "If you appreciate my work, you can show your support with a donation through Buy Me a Coffee or GitHub sponsors. Your support helps me continue improving and growing the app. Thank you!\n💥 Crash fixes\n• Fix focus change crash when BrowseGridFragment is empty #5964, by @nielsvanvelzen\n• Use lifecycle aware asynchronous navigation for user views #5971, by @nielsvanvelzen\n• Fix display preferences for non\\-userview folders #6003, by @nielsvanvelzen\n• Fix arguments not being assigned to fresh fragments in DestinationFragmentView #6013, by @nielsvanvelzen\n🔧 Bugfixes\n• Fix background missing when exiting video player to item details #6004, by @nielsvanvelzen\n• Fallback to primary parent image for user views #6005, by @nielsvanvelzen\n• Fix PlaybackController ignoring server preferred subtitle track #6006, by @nielsvanvelzen\n• Fix rapid focus handling in BrowseGridFragment #6007, by @nielsvanvelzen\n• Fix race condition causing no fragment to load in AppNavigationHost #6016, by @nielsvanvelzen\n🏗️ Enhancements\n• Rewrite ImageProvider to not load images on main thread #5972, by @nielsvanvelzen\n• Add CHANNEL\\_FOLDER\\_ITEM to showCardInfoOverlay #5980, by @milkmansson\n• Add support for alternative Vimu Player package ID #6001, by @ArmandVanShader\n• Send playback stop events for queue advance #6008, by @nielsvanvelzen\n• Check for local AC3\\, EAC3\\, DTS and TrueHD decoders #6014, by @nielsvanvelzen\n📈 Dependency updates\n• actions/setup\\-java action → v6\\.3\\.0 (#5957)\n• android\\.gradle…"
   },
   {
    "id": "kodi",
